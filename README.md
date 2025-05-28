@@ -95,7 +95,7 @@ npm install
 
 ```bash
 cd server
-flask run
+python app.py
 ```
 
 Сервер будет доступен по адресу http://127.0.0.1:5000 (или http://localhost:5000)
