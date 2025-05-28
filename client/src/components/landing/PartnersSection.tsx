@@ -1,4 +1,3 @@
-// client/src/components/landing/PartnersSection.tsx
 import React from 'react';
 import '../../styles/landing/PartnersSection.css';
 

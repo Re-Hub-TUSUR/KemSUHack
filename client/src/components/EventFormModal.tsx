@@ -180,18 +180,18 @@ const EventFormModal: React.FC<EventFormModalProps> = ({ isOpen, onClose, onSubm
                                 className={`form-control ${errors.end_datetime ? 'input-error' : ''}`}
                                 {...register("end_datetime", {
                                     validate: value => {
-                                        if (!value || !startDateTimeValue) return true; // No end date or no start date yet is fine
+                                        if (!value || !startDateTimeValue) return true;
                                         try {
                                              const start = new Date(startDateTimeValue);
                                              const end = new Date(value);
-                                             if (isNaN(start.getTime()) || isNaN(end.getTime())) return true; // Invalid date format allows submission, handled by backend
+                                             if (isNaN(start.getTime()) || isNaN(end.getTime())) return true;
                                              return end >= start || "Дата окончания не может быть раньше даты начала";
                                         } catch {
-                                            return true; // Let backend handle invalid format? Or add regex pattern
+                                            return true;
                                         }
                                     }
                                 })}
-                                min={startDateTimeValue || ''} // Set min based on start time
+                                min={startDateTimeValue || ''}
                                 disabled={isSubmitting}
                             />
                             {errors.end_datetime && <span className="error-message">{errors.end_datetime.message}</span>}

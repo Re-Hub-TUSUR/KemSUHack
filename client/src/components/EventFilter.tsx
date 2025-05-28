@@ -62,7 +62,7 @@ const EventFilterModal: React.FC<EventFilterModalProps> = ({
                         <label htmlFor="modal_startDate">Дата начала</label>
                         <input
                             type="date"
-                            id="modal_startDate" // Use unique IDs for modals
+                            id="modal_startDate"
                             name="startDate"
                             value={localFilters.startDate || ''}
                             onChange={handleInputChange}
