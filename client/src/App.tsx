@@ -14,7 +14,7 @@ import './styles/ControlBar.css';
 import './styles/FilterModal.css';
 import './styles/ConfirmModal.css';
 import './styles/EventCalendar.css';
-import './styles/TopNotification.css'; // Added
+import './styles/TopNotification.css';
 
 import Header from './components/Header';
 import AuthModal from './components/AuthModal';
@@ -25,13 +25,15 @@ import EventCalendarView from './components/EventCalendarView';
 import EventDetailModal from './components/EventDetailModal';
 import EventFormModal from './components/EventFormModal';
 import ConfirmModal from './components/ConfirmModal';
-import TopNotification from './components/TopNotification'; // Added
+import TopNotification from './components/TopNotification';
 import { ToastContainer, toast } from 'react-toastify';
 import { fetchWithAuth as fetchWithAuthHelper } from './utils/fetchWithAuth';
 import { User, Event, EventFilters, EventFormData } from './types';
 
+import LandingPage from './components/landing/LandingPage';
+
 const SOCKET_SERVER_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
-const NOTIFICATION_TIMEOUT = 5000; // Defined here for consistency
+const NOTIFICATION_TIMEOUT = 5000;
 
 type NotificationData = {
   title: string;
@@ -102,7 +104,7 @@ const App = () => {
             throw error;
         }
     }, [handleLogout]);
-
+    
     const requestNotificationPermission = useCallback(async () => {
         let currentPermission = Notification.permission;
         if (!('Notification' in window)) {
@@ -166,39 +168,27 @@ const App = () => {
 
     useEffect(() => {
         if (isAuthenticated && !socketRef.current) {
-             console.log("Попытка подключения к WebSocket...");
              const newSocket = io(SOCKET_SERVER_URL, { transports: ['websocket'] });
-
              newSocket.on('connect', async () => {
-                console.log('WebSocket подключен:', newSocket.id);
                 await requestNotificationPermission();
              });
              newSocket.on('disconnect', (reason) => { console.log('WebSocket отключен:', reason); });
              newSocket.on('connect_error', (error) => { console.error('Ошибка подключения WebSocket:', error); toast.error("Не удалось подключиться к серверу уведомлений."); });
-
              newSocket.on('upcoming_event', (data: { eventId: number; title: string; message: string }) => {
-                console.log('Получено уведомление о предстоящем событии:', data);
                 showTopNotification(data.title, data.message, data.eventId);
              });
-
              newSocket.on('new_event_added', (data: { eventId: number; eventTitle: string }) => {
-                 console.log('Получено уведомление о новом событии:', data);
                  const title = "Новое мероприятие!";
                  const message = `Добавлено: "${data.eventTitle}". Нажмите, чтобы узнать подробности.`;
                  showTopNotification(title, message, data.eventId);
              });
-
              socketRef.current = newSocket;
-
         } else if (!isAuthenticated && socketRef.current) {
-             console.log("Отключение WebSocket...");
              socketRef.current.disconnect();
              socketRef.current = null;
         }
-
         return () => {
              if (socketRef.current) {
-                 console.log("Отключение WebSocket при размонтировании App...");
                  socketRef.current?.off('connect');
                  socketRef.current?.off('disconnect');
                  socketRef.current?.off('connect_error');
@@ -265,10 +255,8 @@ const App = () => {
             setEvents([]);
             return;
         };
-
         setIsLoadingEvents(true);
         setEventError(null);
-
         const queryParams = new URLSearchParams();
         Object.entries(currentFilters).forEach(([key, value]) => {
             if (value) {
@@ -278,12 +266,8 @@ const App = () => {
         if (currentSearchTerm) {
             queryParams.append('search', currentSearchTerm);
         }
-
         const queryString = queryParams.toString();
         const url = `/api/events${queryString ? `?${queryString}` : ''}`;
-
-        console.log(`Fetching events with URL: ${url}`);
-
         try {
             const response = await fetchWithAuth(url);
             if (!response.ok) {
@@ -404,7 +388,7 @@ const App = () => {
         }
     };
 
-    const handleRegister = async (formData: Record<string, string>) => {
+    const handleRegisterSubmit = async (formData: Record<string, string>) => {
          setAuthError(null);
         try {
             const response = await fetch('/api/register', {
@@ -427,7 +411,7 @@ const App = () => {
         }
     };
 
-    const handleLogin = async (formData: Record<string, string>) => {
+    const handleLoginSubmit = async (formData: Record<string, string>) => {
          setAuthError(null);
         try {
             const response = await fetch('/api/login', {
@@ -454,6 +438,22 @@ const App = () => {
         }
     };
 
+    const handleSwitchAuthForm = (targetForm: 'login' | 'register') => {
+        if (targetForm === 'login') {
+          setIsRegisterOpen(false);
+          setIsLoginOpen(true);
+        } else {
+          setIsLoginOpen(false);
+          setIsRegisterOpen(true);
+        }
+        setAuthError(null); 
+    };
+    
+    const handleForgotPassword = () => {
+        console.log("Forgot password clicked");
+        toast.info("Функция восстановления пароля в разработке.");
+    };
+
     if (authLoading) {
         return <div style={{ textAlign: 'center', margin: '4rem 0', fontSize: '1.2em' }}>Загрузка...</div>;
     }
@@ -461,22 +461,26 @@ const App = () => {
     const isFiltered = Object.values(filters).some(value => value !== '' && value !== undefined && value !== null);
 
     return (
-      <div className="container">
-          <TopNotification
-              notification={topNotification}
-              onClose={handleCloseTopNotification}
-              onClick={handleTopNotificationClick}
-          />
-
-          <Header
-              isAuthenticated={isAuthenticated}
-              user={currentUser}
-              onLoginClick={() => setIsLoginOpen(true)}
-              onRegisterClick={() => setIsRegisterOpen(true)}
-              onLogoutClick={handleLogout}
-          />
-
-          {isAuthenticated && (
+      <div className="app-container">
+          {!isAuthenticated ? (
+              <LandingPage 
+                  onLoginClick={() => setIsLoginOpen(true)}
+                  onRegisterClick={() => setIsRegisterOpen(true)}
+              />
+          ) : (
+            <div className="container">
+              <TopNotification
+                  notification={topNotification}
+                  onClose={handleCloseTopNotification}
+                  onClick={handleTopNotificationClick}
+              />
+              <Header
+                  isAuthenticated={isAuthenticated}
+                  user={currentUser}
+                  onLoginClick={() => setIsLoginOpen(true)}
+                  onRegisterClick={() => setIsRegisterOpen(true)}
+                  onLogoutClick={handleLogout}
+              />
               <ControlBar
                   searchTerm={searchTerm}
                   onSearchChange={handleSearchChange}
@@ -487,9 +491,6 @@ const App = () => {
                   viewMode={viewMode}
                   onViewModeChange={setViewMode}
               />
-          )}
-
-          {isAuthenticated ? (
               <>
                 {viewMode === 'list' && (
                     <EventList
@@ -511,55 +512,53 @@ const App = () => {
                     />
                  )}
               </>
-          ) : (
-                <div className="card" style={{ textAlign: 'center', marginTop: '2rem' }}>
-                    <h2>Будь в центре событий КемГУ!</h2>
-                    <p style={{ lineHeight: 1.7, maxWidth: '600px', margin: '0 auto 1.5rem auto' }}>
-                        Наш агрегатор собирает все актуальные мероприятия Кемеровского государственного университета, чтобы вы ничего не пропустили.
-                    </p>
-                    <div style={{ textAlign: 'left', maxWidth: '450px', margin: '0 auto 2rem auto', paddingLeft: '20px' }}>
-                        <ul style={{ listStyle: '✓ ', paddingLeft: '1.2em' }}>
-                            <li style={{ marginBottom: '0.5rem' }}>Просматривайте список и календарь событий.</li>
-                            <li style={{ marginBottom: '0.5rem' }}>Находите роли для участников, волонтёров, организаторов.</li>
-                            <li style={{ marginBottom: '0.5rem' }}>Используйте фильтры по дате, месту и типу мероприятия.</li>
-                            <li>Получайте быстрый доступ к ссылкам на регистрацию.</li>
-                        </ul>
-                    </div>
-                    <p>
-                        <button className="secondary-btn" onClick={() => setIsLoginOpen(true)} style={{ marginRight: '10px' }}>Войти</button>
-                        <span style={{ margin: '0 5px' }}> или </span>
-                        <button className="primary-btn" onClick={() => setIsRegisterOpen(true)}>Зарегистрироваться</button>
-                    </p>
-                     <p style={{ fontSize: '0.9em', color: '#666', marginTop: '1rem' }}>
-                        Присоединяйтесь к активной жизни университета!
-                    </p>
-                </div>
+            </div>
           )}
-
-          <AuthModal isOpen={isRegisterOpen} onClose={() => setIsRegisterOpen(false)} onSubmit={handleRegister} title="Регистрация" submitButtonText="Зарегистрироваться" />
-          <AuthModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSubmit={handleLogin} title="Вход" submitButtonText="Войти" />
-          <EventDetailModal isOpen={isDetailModalOpen} onClose={handleCloseDetailModal} event={selectedEvent} />
-          <EventFormModal isOpen={isFormModalOpen} onClose={handleCloseFormModal} onSubmit={handleSaveEvent} eventToEdit={eventToEdit} />
-          <EventFilterModal
-                isOpen={isFilterModalOpen}
-                onClose={handleCloseFilterModal}
-                initialFilters={filters}
-                onApplyFilters={handleApplyFilters}
-                onResetFilters={handleResetFilters}
+          
+          <AuthModal 
+            isOpen={isRegisterOpen} 
+            onClose={() => { setIsRegisterOpen(false); setAuthError(null); }} 
+            onSubmit={handleRegisterSubmit} 
+            title="Регистрация" 
+            submitButtonText="Зарегистрироваться"
+            onSwitchForm={handleSwitchAuthForm}
           />
-          <ConfirmModal
-              isOpen={isConfirmModalOpen}
-              onClose={cancelDeleteAction}
-              onConfirm={confirmDeleteAction}
-              title="Подтвердить удаление"
-              message="Вы уверены, что хотите удалить это мероприятие? Это действие необратимо."
-              confirmText="Удалить"
-              cancelText="Отмена"
-              isLoading={isDeleting}
+          <AuthModal 
+            isOpen={isLoginOpen} 
+            onClose={() => { setIsLoginOpen(false); setAuthError(null); }} 
+            onSubmit={handleLoginSubmit} 
+            title="Вход" 
+            submitButtonText="Войти" 
+            onSwitchForm={handleSwitchAuthForm}
+            onForgotPassword={handleForgotPassword}
           />
-
+          
+          {isAuthenticated && (
+            <>
+              <EventDetailModal isOpen={isDetailModalOpen} onClose={handleCloseDetailModal} event={selectedEvent} />
+              <EventFormModal isOpen={isFormModalOpen} onClose={handleCloseFormModal} onSubmit={handleSaveEvent} eventToEdit={eventToEdit} />
+              <EventFilterModal
+                    isOpen={isFilterModalOpen}
+                    onClose={handleCloseFilterModal}
+                    initialFilters={filters}
+                    onApplyFilters={handleApplyFilters}
+                    onResetFilters={handleResetFilters}
+              />
+              <ConfirmModal
+                  isOpen={isConfirmModalOpen}
+                  onClose={cancelDeleteAction}
+                  onConfirm={confirmDeleteAction}
+                  title="Подтвердить удаление"
+                  message="Вы уверены, что хотите удалить это мероприятие? Это действие необратимо."
+                  confirmText="Удалить"
+                  cancelText="Отмена"
+                  isLoading={isDeleting}
+              />
+            </>
+          )}
+          
           <ToastContainer position="bottom-right" autoClose={5000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover theme="colored" />
-        </div>
+      </div>
     );
 };
 
