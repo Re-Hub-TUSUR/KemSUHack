@@ -67,47 +67,10 @@
      background: #cfe5ff;
 }
 
-.view-toggle-group {
-    display: inline-flex;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    overflow: hidden;
-}
-
-.view-toggle-btn {
-    background-color: white;
-    border: none;
-    padding: 8px 12px;
-    cursor: pointer;
-    color: #555;
-    transition: background-color 0.2s, color 0.2s;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.view-toggle-btn:hover {
-    background-color: #f0f0f0;
-}
-
-.view-toggle-btn.active {
-    background-color: #6c757d;
-    color: white;
-}
-.view-toggle-btn:focus-visible {
-    outline: 2px solid #5a6268;
-    outline-offset: -1px;
-    z-index: 1;
-}
-
 @media (max-width: 992px) {
      .control-buttons {
          flex-wrap: wrap;
          justify-content: flex-end;
-     }
-     .view-toggle-group {
-        order: -1;
      }
 }
 
@@ -124,10 +87,6 @@
         width: 100%;
         order: 0;
     }
-    .view-toggle-group {
-        order: 0;
-        justify-content: center;
-    }
     .filter-btn, .add-btn {
         flex-grow: 1;
         justify-content: center;
@@ -141,12 +100,5 @@
      }
      .filter-btn, .add-btn {
         width: 100%;
-     }
-     .view-toggle-group {
-        width: 100%;
-        justify-content: center;
-     }
-     .view-toggle-btn {
-        flex-grow: 1;
      }
 }

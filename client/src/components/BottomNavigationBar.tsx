@@ -6,82 +6,59 @@ const MoreIcon = () => (
 );
 
 interface NavItemProps {
-  href?: string;
   icon: JSX.Element;
   text: string;
   isActive?: boolean;
   onClick?: (event: React.MouseEvent<HTMLElement>) => void;
-  isButton?: boolean;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ href, icon, text, isActive, onClick, isButton }) => {
+const NavItem: React.FC<NavItemProps> = ({ icon, text, isActive, onClick }) => {
   const commonProps = {
-    className: `bottom-nav-item ${isActive ? 'active' : ''} ${isButton ? 'is-button' : ''}`,
+    className: `bottom-nav-item ${isActive ? 'active' : ''}`,
     onClick: onClick,
   };
 
-  if (isButton) {
-    return (
-      <button {...commonProps} type="button" aria-label={text}>
-        <span className="bottom-nav-icon-wrapper">{icon}</span>
-        <span className="bottom-nav-text">{text}</span>
-      </button>
-    );
-  }
-
   return (
-    <a href={href} {...commonProps}>
+    <button {...commonProps} type="button" aria-label={text}>
       <span className="bottom-nav-icon-wrapper">{icon}</span>
       <span className="bottom-nav-text">{text}</span>
-    </a>
+    </button>
   );
 };
 
 interface BottomNavigationBarProps {
-  activeRoute?: string;
+  activeView: 'list' | 'calendar';
   onMoreClick: (event: React.MouseEvent<HTMLElement>) => void;
   EventsIconComp: React.FC;
-  NewsIconComp: React.FC;
-  RewardsIconComp: React.FC;
-  onNavigate: (path: string) => void; 
+  CalendarIconComp: React.FC;
+  onNavigate: (view: 'list' | 'calendar') => void; 
 }
 
 const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ 
-    activeRoute, 
+    activeView, 
     onMoreClick,
     EventsIconComp,
-    NewsIconComp,
-    RewardsIconComp,
+    CalendarIconComp,
     onNavigate 
 }) => {
   return (
     <nav className="bottom-navigation-bar">
       <NavItem 
-        href="/events" 
         icon={<EventsIconComp />} 
         text="Мероприятия" 
-        isActive={activeRoute === '/events'} 
-        onClick={(e) => { e.preventDefault(); onNavigate('/events'); }}
+        isActive={activeView === 'list'} 
+        onClick={() => onNavigate('list')}
       />
       <NavItem 
-        href="/news" 
-        icon={<NewsIconComp />} 
-        text="Новости" 
-        isActive={activeRoute === '/news'} 
-        onClick={(e) => { e.preventDefault(); onNavigate('/news'); }}
-      />
-      <NavItem 
-        href="/rewards" 
-        icon={<RewardsIconComp />} 
-        text="Награды" 
-        isActive={activeRoute === '/rewards'}
-        onClick={(e) => { e.preventDefault(); onNavigate('/rewards'); }}
+        icon={<CalendarIconComp />} 
+        text="Расписание" 
+        isActive={activeView === 'calendar'} 
+        onClick={() => onNavigate('calendar')}
       />
       <NavItem 
         icon={<MoreIcon />} 
         text="Еще" 
         onClick={onMoreClick}
-        isButton={true}
       />
     </nav>
   );

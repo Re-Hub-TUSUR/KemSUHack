@@ -27,7 +27,6 @@ export interface User {
   email: string;
   is_admin: boolean;
   avatarUrl?: string | null;
-  points?: number;
 }
 
 export interface Event {

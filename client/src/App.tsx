@@ -17,7 +17,6 @@ import './styles/FilterModal.css';
 import './styles/ConfirmModal.css';
 import './styles/EventCalendar.css';
 import './styles/TopNotification.css';
-import './styles/Sidebar.css';
 import './styles/BottomNavigationBar.css';
 import './styles/MoreMenuModal.css';
 
@@ -37,7 +36,6 @@ import { fetchWithAuth as fetchWithAuthHelper } from './utils/fetchWithAuth';
 import { User, Event, EventFilters, EventFormData } from './types';
 
 import LandingPage from './components/landing/LandingPage';
-import Sidebar from './components/Sidebar';
 import BottomNavigationBar from './components/BottomNavigationBar';
 import MoreMenuModal from './components/MoreMenuModal';
 
@@ -45,17 +43,15 @@ import MoreMenuModal from './components/MoreMenuModal';
 const EventsIconBottomNav = () => (
   <svg className="bottom-nav-icon-svg" viewBox="0 0 24 24"><path fill="currentColor" d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
 );
-const NewsIconBottomNav = () => (
-  <svg className="bottom-nav-icon-svg" viewBox="0 0 24 24"><path fill="currentColor" d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
-);
-const TrophyIconBottomNav = () => (
-  <svg className="bottom-nav-icon-svg" viewBox="0 0 24 24"><path fill="currentColor" d="M20.5 3A1.5 1.5 0 0019 4.5V5H5V4.5A1.5 1.5 0 003.5 3h-1A1.5 1.5 0 001 4.5V8c0 1.92 1.21 3.54 3 4.23V20.5A1.5 1.5 0 005.5 22h13a1.5 1.5 0 001.5-1.5V12.23c1.79-.69 3-2.31 3-4.23V4.5A1.5 1.5 0 0020.5 3h-1zm-4.5 5H8V6h8v2zM4 8V5h1v3zm15 0V5h1v3z"/></svg>
+const CalendarIconBottomNav = () => (
+    <svg className="bottom-nav-icon-svg" viewBox="0 0 24 24"><path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5z"/></svg>
 );
 
 
 const SOCKET_SERVER_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
 const NOTIFICATION_TIMEOUT = 5000;
 
+type ViewMode = 'list' | 'calendar';
 type NotificationData = {
   title: string;
   message: string;
@@ -89,17 +85,14 @@ const App = () => {
     const [eventToDeleteId, setEventToDeleteId] = useState<number | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+    const [viewMode, setViewMode] = useState<ViewMode>('list');
 
     const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
     const socketRef = useRef<Socket | null>(null);
     const [topNotification, setTopNotification] = useState<NotificationData>(null);
     const notificationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-    const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
-    const [activeRoute, setActiveRoute] = useState("/events"); 
 
     const handleLogout = useCallback(() => {
         if (socketRef.current) {
@@ -114,8 +107,6 @@ const App = () => {
         setEvents([]);
         setFilters({});
         setSearchTerm('');
-        setIsSidebarOpenMobile(false);
-        setIsSidebarCollapsed(false);
         toast.info("Вы вышли из системы.");
     }, []);
 
@@ -482,19 +473,9 @@ const App = () => {
         toast.info("Функция восстановления пароля в разработке.");
     };
 
-    const handleNavigate = (path: string) => {
-        console.log(`Navigating to: ${path}`);
-        setActiveRoute(path);
-        setIsSidebarOpenMobile(false); 
+    const handleNavigate = (mode: ViewMode) => {
+        setViewMode(mode);
         setIsMoreMenuOpen(false);
-    };
-
-    const toggleMobileSidebar = () => {
-        setIsSidebarOpenMobile(!isSidebarOpenMobile);
-    };
-
-    const toggleDesktopSidebar = () => {
-        setIsSidebarCollapsed(!isSidebarCollapsed);
     };
 
     if (authLoading) {
@@ -504,7 +485,7 @@ const App = () => {
     const isFiltered = Object.values(filters).some(value => value !== '' && value !== undefined && value !== null);
 
     return (
-      <div className={`app-container ${isSidebarOpenMobile ? 'sidebar-mobile-active' : ''} ${isSidebarCollapsed ? 'sidebar-desktop-collapsed' : ''}`}>
+      <div className="app-container">
           {!isAuthenticated ? (
               <LandingPage 
                   onLoginClick={() => setIsLoginOpen(true)}
@@ -515,23 +496,11 @@ const App = () => {
               <Header
                   user={currentUser}
                   onLogoutClick={handleLogout}
+                  onNavigate={handleNavigate}
+                  viewMode={viewMode}
               />
-              <div className={`app-main-layout ${isSidebarOpenMobile ? 'sidebar-mobile-open' : ''}`}>
-                <Sidebar 
-                    user={currentUser} 
-                    onLogoutClick={handleLogout}
-                    activeRoute={activeRoute}
-                    isCollapsed={isSidebarCollapsed}
-                    onToggleCollapse={toggleDesktopSidebar}
-                />
-                <main 
-                    className={`app-content-area 
-                                ${isSidebarOpenMobile ? 'sidebar-open-content-pusher' : ''} 
-                                ${ (typeof window !== 'undefined' && window.innerWidth <= 768) ? 'has-bottom-nav' : ''}
-                                ${isSidebarCollapsed ? 'sidebar-collapsed-content' : ''}`
-                    } 
-                    onClick={() => isSidebarOpenMobile && setIsSidebarOpenMobile(false) }
-                >
+              <div className="app-main-layout">
+                <main className={`app-content-area ${ (typeof window !== 'undefined' && window.innerWidth <= 768) ? 'has-bottom-nav' : ''}`}>
                   <TopNotification
                       notification={topNotification}
                       onClose={handleCloseTopNotification}
@@ -544,8 +513,6 @@ const App = () => {
                       onAddClick={handleOpenAddForm}
                       isAdmin={currentUser?.is_admin ?? false}
                       isFiltered={isFiltered}
-                      viewMode={viewMode}
-                      onViewModeChange={setViewMode}
                   />
                   
                   {viewMode === 'list' && (
@@ -570,11 +537,10 @@ const App = () => {
                 </main>
               </div>
               <BottomNavigationBar 
-                activeRoute={activeRoute} 
+                activeView={viewMode}
                 onMoreClick={() => setIsMoreMenuOpen(true)}
                 EventsIconComp={EventsIconBottomNav}
-                NewsIconComp={NewsIconBottomNav}
-                RewardsIconComp={TrophyIconBottomNav}
+                CalendarIconComp={CalendarIconBottomNav}
                 onNavigate={handleNavigate}
               />
             </>
@@ -603,8 +569,7 @@ const App = () => {
               <MoreMenuModal 
                 isOpen={isMoreMenuOpen} 
                 onClose={() => setIsMoreMenuOpen(false)} 
-                onLogoutClick={handleLogout} 
-                onNavigate={handleNavigate}
+                onLogoutClick={handleLogout}
               />
               <EventDetailModal isOpen={isDetailModalOpen} onClose={handleCloseDetailModal} event={selectedEvent} />
               <EventFormModal isOpen={isFormModalOpen} onClose={handleCloseFormModal} onSubmit={handleSaveEvent} eventToEdit={eventToEdit} />
@@ -629,7 +594,6 @@ const App = () => {
           )}
           
           <ToastContainer position="bottom-right" autoClose={5000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover theme="colored" />
-          {isSidebarOpenMobile && <div className="mobile-sidebar-overlay active" onClick={toggleMobileSidebar}></div>}
       </div>
     );
 };
