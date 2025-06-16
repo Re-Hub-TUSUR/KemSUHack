@@ -20,7 +20,6 @@ export enum ParticipantRole {
   ORGANIZER = "Организатор"
 }
 
-
 export interface User {
   id: number;
   username: string;
@@ -42,12 +41,12 @@ export interface Event {
   registration_link_participant?: string | null;
   registration_link_volunteer?: string | null;
   registration_link_organizer?: string | null;
+  image_url?: string | null;
   created_at: string;
   updated_at: string;
   author_id: number;
   author_username?: string;
 }
-
 
 export interface EventFilters {
   startDate?: string;
@@ -56,7 +55,6 @@ export interface EventFilters {
   location?: EventLocation | '';
   type?: EventType | '';
 }
-
 
 export interface EventFormData {
   title: string;

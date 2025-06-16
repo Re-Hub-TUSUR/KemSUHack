@@ -32,7 +32,6 @@ class User(db.Model):
     password_hash = db.Column(db.String(128), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
-
     authored_events = db.relationship('Event', backref='author', lazy=True, cascade="all, delete-orphan")
 
     def set_password(self, password):
@@ -54,11 +53,10 @@ class Event(db.Model):
     location_details = db.Column(db.String(200), nullable=True)
     event_type = db.Column(db.Enum(EventType), nullable=False)
     roles_available = db.Column(db.String(150), nullable=False)
-
     registration_link_participant = db.Column(db.String(500), nullable=True)
     registration_link_volunteer = db.Column(db.String(500), nullable=True)
     registration_link_organizer = db.Column(db.String(500), nullable=True)
-
+    image_url = db.Column(db.String(500), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -83,6 +81,7 @@ class Event(db.Model):
             'registration_link_participant': self.registration_link_participant,
             'registration_link_volunteer': self.registration_link_volunteer,
             'registration_link_organizer': self.registration_link_organizer,
+            'image_url': self.image_url,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
             'author_id': self.author_id,

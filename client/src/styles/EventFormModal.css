@@ -1,6 +1,15 @@
 .modal-content.event-form-modal {
     max-width: 700px;
     max-height: 85vh;
+    padding-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.modal-content.event-form-modal::-webkit-scrollbar {
+    display: none;
 }
 
 .event-form-grid {
@@ -10,16 +19,6 @@
 }
 .event-form-grid .full-width {
     grid-column: 1 / -1;
-}
-
-.modal-content.event-form-modal form button[type="submit"].primary-btn {
-    margin-top: 1.5rem;
-    margin-bottom: 1rem;
-    display: block;
-    width: 100%;
-    max-width: 300px;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .event-form-modal textarea.form-control {
@@ -61,6 +60,70 @@
     display: inline;
 }
 
+.custom-file-upload {
+    border: 2px dashed var(--border-color);
+    border-radius: var(--border-radius-md);
+    display: block;
+    padding: 2rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s;
+    color: var(--text-color-secondary);
+}
+
+.custom-file-upload:hover, .custom-file-upload.dragging {
+    border-color: var(--primary-color);
+    background-color: #f8f9fa;
+}
+
+.custom-file-upload input[type="file"] {
+    display: none;
+}
+
+.form-helper-text {
+    font-size: 0.85rem;
+    color: var(--text-color-muted);
+    margin-top: 0.5rem;
+    display: block;
+}
+
+.ReactCrop__crop-selection {
+    border: 2px dashed var(--primary-color);
+}
+
+.preview-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.preview-container p {
+    font-weight: 500;
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+.preview-canvas {
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background-color: #f8f9fa;
+}
+
+.form-submit-btn {
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    width: 100%;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+    flex-shrink: 0;
+}
+
 @media (max-width: 768px) {
      .modal-content.event-form-modal {
         max-width: 90%;
@@ -75,7 +138,6 @@
     .event-form-modal .checkbox-group {
          grid-column: 1 / -1;
     }
-
 }
 @media (max-width: 480px) {
      .event-form-modal .checkbox-options {

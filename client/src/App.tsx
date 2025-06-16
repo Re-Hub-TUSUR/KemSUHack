@@ -386,23 +386,56 @@ const App = () => {
         setEventToDeleteId(null);
     };
 
-    const handleSaveEvent = async (formData: EventFormData) => {
-        const url = eventToEdit ? `/api/events/${eventToEdit.id}` : '/api/events';
-        const method = eventToEdit ? 'PUT' : 'POST';
+    const handleSaveEvent = async (formData: EventFormData, imageFile: File | null) => {
+        const isEditing = !!eventToEdit;
+        let savedEvent: Event;
+
         try {
-            const response = await fetchWithAuth(url, { method, body: JSON.stringify(formData) });
-            if (!response.ok) {
-                 const errorData = await response.json().catch(() => ({}));
-                 throw new Error(errorData.error || `Ошибка ${eventToEdit ? 'обновления' : 'создания'} мероприятия`);
+            if (isEditing) {
+                const response = await fetchWithAuth(`/api/events/${eventToEdit!.id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(formData),
+                });
+                if (!response.ok) throw new Error((await response.json()).error || 'Ошибка обновления');
+                savedEvent = await response.json();
+                toast.success("Данные мероприятия успешно обновлены!");
+            } else {
+                const response = await fetchWithAuth('/api/events', {
+                    method: 'POST',
+                    body: JSON.stringify(formData),
+                });
+                if (!response.ok) throw new Error((await response.json()).error || 'Ошибка создания');
+                savedEvent = await response.json();
+                toast.success("Мероприятие успешно создано!");
             }
+
+            if (imageFile && savedEvent.id) {
+                const imageFormData = new FormData();
+                imageFormData.append('image', imageFile);
+
+                const imageUploadUrl = `/api/events/${savedEvent.id}/upload_image`;
+                const imageResponse = await fetchWithAuth(imageUploadUrl, {
+                    method: 'POST',
+                    body: imageFormData
+                });
+
+                if (!imageResponse.ok) {
+                    const errorData = await imageResponse.json().catch(() => ({}));
+                    toast.warn(`Мероприятие сохранено, но не удалось загрузить изображение: ${errorData.error}`);
+                } else {
+                    toast.success("Изображение успешно загружено!");
+                }
+            }
+            
             fetchEvents(filters, searchTerm);
-            toast.success(eventToEdit ? "Мероприятие успешно обновлено!" : "Мероприятие успешно создано!");
             handleCloseFormModal();
+
         } catch (err) {
              if (!(err instanceof Error && err.message.includes('401'))) {
                  const message = err instanceof Error ? err.message : 'Произошла ошибка сохранения';
                  toast.error(message);
                  console.error("Save Event Error:", err);
+                 throw err;
              }
         }
     };
@@ -572,7 +605,12 @@ const App = () => {
                 onLogoutClick={handleLogout}
               />
               <EventDetailModal isOpen={isDetailModalOpen} onClose={handleCloseDetailModal} event={selectedEvent} />
-              <EventFormModal isOpen={isFormModalOpen} onClose={handleCloseFormModal} onSubmit={handleSaveEvent} eventToEdit={eventToEdit} />
+              <EventFormModal 
+                isOpen={isFormModalOpen} 
+                onClose={handleCloseFormModal} 
+                onSubmit={handleSaveEvent} 
+                eventToEdit={eventToEdit} 
+              />
               <EventFilterModal
                     isOpen={isFilterModalOpen}
                     onClose={handleCloseFilterModal}
