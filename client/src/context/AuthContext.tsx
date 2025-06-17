@@ -1,5 +1,3 @@
-// src/context/AuthContext.tsx
-
 import React, { createContext, useState, useEffect, useCallback, useContext, ReactNode } from 'react';
 import { toast } from 'react-toastify';
 import { User } from '../types';
@@ -13,6 +11,8 @@ interface AuthContextType {
     login: (formData: Record<string, string>) => Promise<void>;
     register: (formData: Record<string, string>) => Promise<void>;
     logout: () => void;
+    updateUser: (data: Partial<User> | FormData) => Promise<void>;
+    changePassword: (passwordData: Record<string, string>) => Promise<void>;
     fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>;
 }
 
@@ -46,12 +46,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         setCurrentUser(data.user);
                         setIsAuthenticated(true);
                     } else {
-                        // Если токен есть, но невалиден, выходим из системы
                         handleLogout();
                     }
                 } catch (error) {
                     console.error("Ошибка проверки сессии:", error);
-                    handleLogout(); // Выходим при сетевой или другой ошибке
+                    handleLogout();
                 }
             }
             setIsLoading(false);
@@ -88,6 +87,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         toast.success(data.message || 'Регистрация успешна! Теперь вы можете войти.');
     };
+
+    const updateUser = async (data: Partial<User> | FormData) => {
+        let response;
+        if (data instanceof FormData) {
+            response = await fetchWithAuth('/api/me/avatar', {
+                method: 'POST',
+                body: data,
+            });
+        } else {
+            response = await fetchWithAuth('/api/me', {
+                method: 'PUT',
+                body: JSON.stringify(data),
+            });
+        }
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Не удалось обновить профиль');
+        }
+
+        const updatedUserData = await response.json();
+        setCurrentUser(updatedUserData.user);
+    };
+
+    const changePassword = async (passwordData: Record<string, string>) => {
+        const response = await fetchWithAuth('/api/me/change-password', {
+            method: 'POST',
+            body: JSON.stringify(passwordData),
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Не удалось сменить пароль');
+        }
+    };
     
     const value = {
         isAuthenticated,
@@ -97,6 +131,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         login,
         register,
         logout: handleLogout,
+        updateUser,
+        changePassword,
         fetchWithAuth
     };
 

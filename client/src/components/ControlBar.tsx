@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { FilterIcon, AddIcon } from './icons';
 
 interface ControlBarProps {
@@ -23,7 +23,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
             <div className="search-input-wrapper">
                 <input
                     type="search"
-                    placeholder="Поиск по названию или описанию..."
+                    placeholder="Поиск мероприятия"
                     value={searchTerm}
                     onChange={onSearchChange}
                     className="form-control search-input"
@@ -54,4 +54,4 @@ const ControlBar: React.FC<ControlBarProps> = ({
     );
 };
 
-export default ControlBar;
+export default memo(ControlBar);

@@ -40,6 +40,5 @@
 @media (max-width: 768px) {
   .app-content-area {
     padding: 15px;
-    height: calc(100vh - 60px - 60px);
   }
 }

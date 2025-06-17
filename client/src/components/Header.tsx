@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import { User } from '../types';
 import '../styles/Header.css';
 import { BellIcon, UserPlaceholderIcon } from './icons';
@@ -7,7 +7,7 @@ interface HeaderProps {
   user: User | null;
   onLogoutClick: () => void;
   onNavigate: (mode: 'list' | 'calendar') => void;
-  viewMode: 'list' | 'calendar';
+  viewMode: 'list' | 'calendar' | null;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -100,4 +100,4 @@ const Header: React.FC<HeaderProps> = ({
   );
 };
 
-export default Header;
+export default memo(Header);

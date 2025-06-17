@@ -1,4 +1,4 @@
-import React, { JSX } from 'react';
+import React, { JSX, memo } from 'react';
 import '../styles/BottomNavigationBar.css';
 import { MoreIcon } from './icons';
 
@@ -24,7 +24,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon, text, isActive, onClick }) => {
 };
 
 interface BottomNavigationBarProps {
-  activeView: 'list' | 'calendar';
+  activeView: 'list' | 'calendar' | null;
   onMoreClick: (event: React.MouseEvent<HTMLElement>) => void;
   EventsIconComp: React.FC;
   CalendarIconComp: React.FC;
@@ -61,4 +61,4 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
   );
 };
 
-export default BottomNavigationBar;
+export default memo(BottomNavigationBar);

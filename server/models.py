@@ -45,12 +45,22 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     authored_events = db.relationship('Event', backref='author', lazy=True, cascade="all, delete-orphan")
+    avatar_url = db.Column(db.String(500), nullable=True)
 
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
     def check_password(self, password):
         return bcrypt.check_password_hash(self.password_hash, password)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'is_admin': self.is_admin,
+            'avatarUrl': self.avatar_url
+        }
 
     def __repr__(self):
         return f'<User {self.username}>'

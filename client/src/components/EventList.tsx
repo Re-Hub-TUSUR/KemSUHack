@@ -39,7 +39,7 @@ const EventList: React.FC<EventListProps> = ({
                     <article key={event.id} className="event-card">
                         <div className="event-card-image-wrapper" onClick={() => onViewDetails(event)}>
                             <img 
-                                src={event.image_url || '/assets/main/card-background.jpg'} 
+                                src={event.image_url || '/assets/main/card-background.png'} 
                                 alt={event.title} 
                                 className="event-card-image"
                                 loading="lazy"
