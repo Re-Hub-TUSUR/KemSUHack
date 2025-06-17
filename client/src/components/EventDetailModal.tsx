@@ -20,7 +20,7 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({ isOpen, onClose, ev
         const displayUrl = validUrl ? url : `http://${url}`;
         return (
             <div className="meta-item">
-                <LinkIcon />
+                <LinkIcon size={18} />
                 <a href={displayUrl} target="_blank" rel="noopener noreferrer">{label}</a>
             </div>
         );
@@ -46,15 +46,15 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({ isOpen, onClose, ev
                 <div className="detail-section meta-section">
                     <h4>Детали</h4>
                     <div className="meta-item">
-                        <CalendarIcon />
+                        <CalendarIcon size={18} />
                         <span>{formatDateTimeRange(event.start_datetime, event.end_datetime)}</span>
                     </div>
                     <div className="meta-item">
-                        <LocationIcon />
+                        <LocationIcon size={18} />
                         <span>{event.location}{event.location_details ? ` - ${event.location_details}` : ''}</span>
                     </div>
                      <div className="meta-item">
-                        <TypeIcon />
+                        <TypeIcon size={18} />
                         <span>{event.event_type}</span>
                     </div>
                 </div>
@@ -84,11 +84,11 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({ isOpen, onClose, ev
                 <div className="detail-section info-section">
                      <h4>Информация</h4>
                      <div className="meta-item">
-                        <InfoIcon />
+                        <InfoIcon size={18} />
                         <span>Добавлено: {formatDate(event.created_at, true)} {event.author_username ? `(${event.author_username})` : ''}</span>
                     </div>
                      <div className="meta-item">
-                        <InfoIcon />
+                        <InfoIcon size={18} />
                         <span>Обновлено: {formatDate(event.updated_at, true)}</span>
                     </div>
                  </div>

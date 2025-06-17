@@ -49,8 +49,8 @@ const EventList: React.FC<EventListProps> = ({
                         <div className="event-card-content">
                             <header>
                                 <div className="event-card-meta">
-                                    <span><CalendarIcon /> {formatSingleDateTime(event.start_datetime)}</span>
-                                    <span><LocationIcon /> {event.location}</span>
+                                    <span><CalendarIcon size={16} /> {formatSingleDateTime(event.start_datetime)}</span>
+                                    <span><LocationIcon size={16} /> {event.location}</span>
                                 </div>
                                 <h3 className="event-card-title" onClick={() => onViewDetails(event)} title={event.title}>
                                     {event.title}
