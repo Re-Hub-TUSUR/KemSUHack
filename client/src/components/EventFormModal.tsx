@@ -1,16 +1,20 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm, SubmitHandler, Controller } from 'react-hook-form';
 import { Event, EventFormData, EventLocation, EventType, ParticipantRole } from '../types';
+import { format } from 'date-fns-tz';
+import { parseISO } from 'date-fns';
 
 const toLocalDateTimeString = (utcString?: string | null): string => {
     if (!utcString) return '';
     try {
-        const date = new Date(utcString);
-        const timezoneOffset = date.getTimezoneOffset() * 60000;
-        const localDate = new Date(date.getTime() - timezoneOffset);
-        return localDate.toISOString().slice(0, 16);
+        let correctedDateString = utcString;
+        if (correctedDateString.includes('T') && !correctedDateString.endsWith('Z') && !correctedDateString.includes('+')) {
+            correctedDateString += 'Z';
+        }
+
+        const date = parseISO(correctedDateString);
+        return format(date, "yyyy-MM-dd'T'HH:mm", { timeZone: 'Asia/Krasnoyarsk' });
     } catch (e) {
-        console.error("Error converting UTC to local datetime string:", e);
         return '';
     }
 };
@@ -22,7 +26,6 @@ const toUTCISOString = (localDateTimeString?: string | null): string | undefined
         if (isNaN(date.getTime())) return undefined;
         return date.toISOString();
     } catch (e) {
-        console.error("Error converting local datetime to UTC string:", e);
         return undefined;
     }
 };

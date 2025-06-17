@@ -1,5 +1,8 @@
 import React from 'react';
 import { Event } from '../types';
+import { format } from 'date-fns-tz';
+import { ru } from 'date-fns/locale';
+import { parseISO } from 'date-fns';
 
 const CalendarIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
@@ -29,19 +32,20 @@ const TrashIcon = () => (
 const formatSingleDateTime = (dateString: string | null | undefined): string => {
     if (!dateString) return '';
     try {
-        const date = new Date(dateString);
+        let correctedDateString = dateString;
+        if (correctedDateString.includes('T') && !correctedDateString.endsWith('Z') && !correctedDateString.includes('+')) {
+            correctedDateString += 'Z';
+        }
+        
+        const date = parseISO(correctedDateString);
         if (isNaN(date.getTime())) return 'Неверная дата';
 
-        const options: Intl.DateTimeFormatOptions = {
-            day: 'numeric',
-            month: 'long',
-            hour: '2-digit',
-            minute: '2-digit',
+        return format(date, 'd MMMM yyyy, HH:mm', {
             timeZone: 'Asia/Krasnoyarsk',
-        };
-
-        return new Intl.DateTimeFormat('ru-RU', options).format(date);
+            locale: ru,
+        });
     } catch (e) {
+        console.error("Date formatting error:", e);
         return 'Ошибка даты';
     }
 };

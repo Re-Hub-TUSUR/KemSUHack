@@ -31,7 +31,7 @@ class Role(db.Model):
 
     def __repr__(self):
         return f'<Role {self.name.value}>'
-    
+
 event_roles = db.Table('event_roles',
     db.Column('event_id', db.Integer, db.ForeignKey('event.id'), primary_key=True),
     db.Column('role_id', db.Integer, db.ForeignKey('role.id'), primary_key=True)
@@ -64,14 +64,12 @@ class Event(db.Model):
     location = db.Column(db.Enum(EventLocation), nullable=False)
     location_details = db.Column(db.String(200), nullable=True)
     event_type = db.Column(db.Enum(EventType), nullable=False)
-    
     roles = db.relationship(
         'Role', 
         secondary=event_roles,
         lazy='subquery',
         backref=db.backref('events', lazy=True)
     )
-    
     registration_link_participant = db.Column(db.String(500), nullable=True)
     registration_link_volunteer = db.Column(db.String(500), nullable=True)
     registration_link_organizer = db.Column(db.String(500), nullable=True)

@@ -13,8 +13,7 @@ from config import Config
 logger = logging.getLogger(__name__)
 
 def _delete_image_file(image_url: Optional[str]):
-    if not image_url:
-        return
+    if not image_url: return
     try:
         filename = os.path.basename(image_url)
         filepath = os.path.join(Config.UPLOAD_FOLDER, filename)
@@ -27,15 +26,9 @@ def _delete_image_file(image_url: Optional[str]):
         logger.error(f"Error deleting image file for url {image_url}: {e}", exc_info=True)
 
 def parse_datetime(date_string: Optional[str]) -> Optional[datetime]:
-    if not date_string:
-        return None
+    if not date_string: return None
     try:
-        if date_string.endswith('Z'):
-            date_string = date_string[:-1] + '+00:00'
-        
-        dt_aware = datetime.fromisoformat(date_string)
-        
-        return dt_aware.astimezone(timezone.utc)
+        return datetime.fromisoformat(date_string.replace('Z', '+00:00'))
     except (ValueError, TypeError) as e:
         logger.warning(f"Could not parse datetime string: '{date_string}'. Error: {e}")
         return None
@@ -56,6 +49,7 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in Config.ALLOWED_EXTENSIONS
 
 def register_event_routes(app):
+    
     @app.route('/api/events', methods=['GET'])
     @jwt_required()
     def get_events():
@@ -101,7 +95,10 @@ def register_event_routes(app):
 
             query = query.order_by(Event.start_datetime.asc())
             events = query.all()
-            return jsonify([event.to_dict() for event in events]), 200
+            
+            events_data = [event.to_dict() for event in events]
+            return jsonify(events_data), 200
+            
         except Exception as e:
             logger.error(f"Error fetching events: {e}", exc_info=True)
             return jsonify({"error": "Не удалось загрузить мероприятия"}), 500
@@ -111,8 +108,10 @@ def register_event_routes(app):
     def get_event(event_id):
         try:
             event = Event.query.get(event_id)
-            if event: return jsonify(event.to_dict()), 200
-            else: return jsonify({"error": "Мероприятие не найдено"}), 404
+            if event: 
+                return jsonify(event.to_dict()), 200
+            else: 
+                return jsonify({"error": "Мероприятие не найдено"}), 404
         except Exception as e:
             logger.error(f"Error fetching event {event_id}: {e}", exc_info=True)
             return jsonify({"error": "Ошибка сервера"}), 500
@@ -161,7 +160,9 @@ def register_event_routes(app):
             db.session.add(new_event)
             db.session.commit()
             logger.info(f"Event '{new_event.title}' (ID: {new_event.id}) created by user {current_user_id}")
+            
             return jsonify(new_event.to_dict()), 201
+            
         except (ValueError, TypeError) as e:
             return jsonify({"error": f"Недопустимое значение или тип данных: {e}"}), 400
         except Exception as e:
@@ -215,7 +216,9 @@ def register_event_routes(app):
             
             db.session.commit()
             logger.info(f"Event ID {event_id} updated by user {current_user_id}")
+            
             return jsonify(event.to_dict()), 200
+            
         except (ValueError, TypeError) as e:
             db.session.rollback()
             return jsonify({"error": f"Недопустимое значение или тип данных: {e}"}), 400
@@ -298,9 +301,7 @@ def register_event_routes(app):
             image_to_delete = event.image_url
             event.image_url = None
             db.session.commit()
-
             _delete_image_file(image_to_delete)
-
             logger.info(f"Image deleted for event {event_id} by user {current_user_id}")
             return jsonify(event.to_dict()), 200
         except Exception as e:

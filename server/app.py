@@ -36,14 +36,11 @@ register_event_routes(app)
 
 @app.cli.command("init-db")
 def init_db_command():
-    """Initializes the database and populates the roles table."""
     db.create_all()
-    
     for role_enum in ParticipantRoleEnum:
         if not Role.query.filter_by(name=role_enum).first():
             db.session.add(Role(name=role_enum))
             print(f"Role '{role_enum.value}' created.")
-    
     db.session.commit()
     print("Database initialized and roles populated.")
 
@@ -68,24 +65,20 @@ def check_upcoming_events():
         for event in upcoming_events:
             try:
                 logger.info(f"Отправка уведомления о событии ID: {event.id} ('{event.title}')")
-        
                 local_start_time = event.start_datetime.strftime('%d.%m.%Y в %H:%M')
-                
                 notification_data = {
                     'eventId': event.id,
                     'title': 'Скоро начнется!',
                     'message': f"Мероприятие '{event.title}' начнется {local_start_time} (UTC).",
                 }
                 socketio.emit('upcoming_event', notification_data)
-                
                 event.notification_sent_at = now_utc
                 db.session.add(event)
-                
                 logger.info(f"Уведомление 'upcoming_event' о событии ID: {event.id} отправлено.")
             except Exception as e:
                  logger.error(f"Ошибка при отправке уведомления 'upcoming_event' о событии ID {event.id}: {e}", exc_info=True)
                  db.session.rollback()
-                 continue 
+                 continue
 
         db.session.commit()
 
