@@ -1,34 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useForm, SubmitHandler, Controller } from 'react-hook-form';
 import { Event, EventFormData, EventLocation, EventType, ParticipantRole } from '../types';
-import { format } from 'date-fns-tz';
-import { parseISO } from 'date-fns';
-
-const toLocalDateTimeString = (utcString?: string | null): string => {
-    if (!utcString) return '';
-    try {
-        let correctedDateString = utcString;
-        if (correctedDateString.includes('T') && !correctedDateString.endsWith('Z') && !correctedDateString.includes('+')) {
-            correctedDateString += 'Z';
-        }
-
-        const date = parseISO(correctedDateString);
-        return format(date, "yyyy-MM-dd'T'HH:mm", { timeZone: 'Asia/Krasnoyarsk' });
-    } catch (e) {
-        return '';
-    }
-};
-
-const toUTCISOString = (localDateTimeString?: string | null): string | undefined => {
-    if (!localDateTimeString) return undefined;
-    try {
-        const date = new Date(localDateTimeString);
-        if (isNaN(date.getTime())) return undefined;
-        return date.toISOString();
-    } catch (e) {
-        return undefined;
-    }
-};
+import { toLocalDateTimeString, toUTCISOString } from '../utils/dateUtils';
 
 interface EventFormModalProps {
     isOpen: boolean;
@@ -147,18 +120,17 @@ const EventFormModal: React.FC<EventFormModalProps> = ({ isOpen, onClose, onSubm
                     <div className="form-group full-width">
                         <label htmlFor="image">Изображение мероприятия</label>
                         <input type="file" id="image" accept="image/png, image/jpeg, image/gif, image/webp" className="form-control" onChange={handleFileChange} disabled={isSubmitting || isDeletingImage} />
-                        <small style={{ color: 'var(--text-color-muted)', marginTop: '5px', display: 'block' }}>
+                        <small className="image-upload-helper">
                             Рекомендуемое соотношение сторон 16:9.
                         </small>
                         {preview && (
-                             <div style={{ marginTop: '10px' }}>
-                                <img src={preview} alt="Предпросмотр" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px' }}/>
+                             <div className="preview-wrapper">
+                                <img src={preview} alt="Предпросмотр" className="preview-image"/>
                                 {eventToEdit && (
                                      <button
                                         type="button"
                                         onClick={handleDeleteImage}
-                                        className="secondary-btn small-btn"
-                                        style={{ marginTop: '10px', background: 'var(--danger-color)', color: 'white', borderColor: 'var(--danger-color)' }}
+                                        className="secondary-btn small-btn delete-image-btn"
                                         disabled={isDeletingImage || isSubmitting}
                                      >
                                         {isDeletingImage ? 'Удаление...' : 'Удалить изображение'}
@@ -237,7 +209,7 @@ const EventFormModal: React.FC<EventFormModalProps> = ({ isOpen, onClose, onSubm
                             {errors.registration_link_organizer && <span className="error-message">{errors.registration_link_organizer.message}</span>}
                         </div>
                     </div>
-                    <div className="form-submit-btn-wrapper" style={{ paddingBottom: '1.5rem' }}>
+                    <div className="form-submit-wrapper">
                         <button type="submit" className="form-submit-btn primary-btn" disabled={isSubmitting || isDeletingImage}>
                             {isSubmitting ? 'Сохранение...' : (eventToEdit ? 'Сохранить изменения' : 'Добавить мероприятие')}
                         </button>

@@ -1,70 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useForm, SubmitHandler, FieldErrors } from 'react-hook-form';
-
-const UserIcon = () => (
-  <svg 
-    className="auth-icon" 
-    xmlns="http://www.w3.org/2000/svg" 
-    viewBox="0 0 24 24"
-  >
-    <path 
-      fill="currentColor"
-      d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-    />
-  </svg>
-);
-
-const EmailIcon = () => (
-  <svg 
-    className="auth-icon" 
-    xmlns="http://www.w3.org/2000/svg" 
-    viewBox="0 0 24 24"
-  >
-    <path 
-      fill="currentColor"
-      d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"
-    />
-  </svg>
-);
-
-const LockIcon = () => (
-  <svg 
-    className="auth-icon" 
-    xmlns="http://www.w3.org/2000/svg" 
-    viewBox="0 0 24 24"
-  >
-    <path 
-      fill="currentColor"
-      d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"
-    />
-  </svg>
-);
-
-const EyeOpenIcon = () => (
-  <svg 
-    className="auth-icon"
-    xmlns="http://www.w3.org/2000/svg" 
-    viewBox="0 0 24 24"
-  >
-    <path 
-      fill="currentColor"
-      d="M12 6c3.79 0 7.17 2.13 8.82 5.5C19.17 14.87 15.79 17 12 17s-7.17-2.13-8.82-5.5C4.83 8.13 8.21 6 12 6m0-2C7 4 2.73 7.11 1 11.5 2.73 15.89 7 19 12 19s9.27-3.11 11-7.5C21.27 7.11 17 4 12 4zm0 5c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3m0-2c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5z"
-    />
-  </svg>
-);
-
-const EyeClosedIcon = () => (
-  <svg 
-    className="auth-icon" 
-    xmlns="http://www.w3.org/2000/svg" 
-    viewBox="0 0 24 24"
-  >
-    <path 
-      fill="currentColor"
-      d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" 
-    />
-  </svg>
-);
+import { UserIcon, EmailIcon, LockIcon, EyeOpenIcon, EyeClosedIcon } from './icons';
 
 type LoginFormInputs = {
   email: string;
@@ -86,6 +22,7 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (formData: AuthFormData) => Promise<void>;
+  variant: 'login' | 'register';
   title: string;
   submitButtonText: string;
   onSwitchForm?: (targetForm: 'login' | 'register') => void; 
@@ -96,12 +33,13 @@ const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
+  variant,
   title,
   submitButtonText,
   onSwitchForm,
   onForgotPassword,
 }) => {
-  const isRegister = title.toLowerCase().includes('регистрация');
+  const isRegister = variant === 'register';
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -181,8 +119,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
                     placeholder="Введите ваше имя пользователя"
                     className={`auth-input ${errors.username ? 'input-error' : ''}`}
                     {...register("username", { 
-                        required: isRegister ? "Имя пользователя обязательно" : false,
-                        minLength: isRegister ? { value: 3, message: "Минимум 3 символа" } : undefined
+                        required: "Имя пользователя обязательно",
+                        minLength: { value: 3, message: "Минимум 3 символа" }
                     })}
                     disabled={isSubmitting}
                     autoComplete="username"
@@ -252,8 +190,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
                     placeholder="Повторите пароль"
                     className={`auth-input ${registerErrors.confirm_password ? 'input-error' : ''}`}
                     {...register("confirm_password", {
-                        required: isRegister ? "Подтверждение пароля обязательно" : false,
-                        validate: value => isRegister ? (value === passwordValue || "Пароли не совпадают") : true
+                        required: "Подтверждение пароля обязательно",
+                        validate: value => value === passwordValue || "Пароли не совпадают"
                     })}
                     disabled={isSubmitting}
                     autoComplete="new-password"

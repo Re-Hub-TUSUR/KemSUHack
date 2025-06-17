@@ -16,6 +16,24 @@
     display: none;
 }
 
+.event-detail-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    color: #888;
+    transition: color 0.2s ease;
+}
+
+.event-detail-close-btn:hover {
+    color: #333;
+}
+
 .event-detail-modal h2 {
     margin-bottom: 1rem;
     font-size: 1.6rem;
