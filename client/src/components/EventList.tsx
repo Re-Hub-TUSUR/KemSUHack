@@ -13,12 +13,6 @@ const LocationIcon = () => (
     </svg>
 );
 
-const PeopleIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-        <path d="M10 9a3 3 0 100-6 3 3 0 000 6zM6 8a2 2 0 11-4 0 2 2 0 014 0zM1.49 15.326a.78.78 0 01-.358-.447 3 3 0 014.308-3.516 6.484 6.484 0 00-1.905 3.959c-.023.222-.014.442.025.654a4.97 4.97 0 01-2.07-.65m12.02 0a4.97 4.97 0 01-2.07.65c.04-.212.048-.432.025-.654a6.484 6.484 0 00-1.905-3.959 3 3 0 014.308 3.516.78.78 0 01-.358.447zM14 8a2 2 0 11-4 0 2 2 0 014 0zm-8.29 6.99a4.992 4.992 0 012.582-2.995 5.485 5.485 0 011.414 1.079 5.485 5.485 0 011.414-1.079 4.992 4.992 0 012.582 2.995M14 13H6v2h8v-2z" />
-    </svg>
-);
-
 const PencilIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
         <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/>
@@ -37,13 +31,16 @@ const formatSingleDateTime = (dateString: string | null | undefined): string => 
     try {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return 'Неверная дата';
+
         const options: Intl.DateTimeFormatOptions = {
             day: 'numeric',
             month: 'long',
             hour: '2-digit',
             minute: '2-digit',
+            timeZone: 'Asia/Krasnoyarsk',
         };
-        return date.toLocaleTimeString('ru-RU', options);
+
+        return new Intl.DateTimeFormat('ru-RU', options).format(date);
     } catch (e) {
         return 'Ошибка даты';
     }
@@ -77,7 +74,7 @@ const EventList: React.FC<EventListProps> = ({
             return <div className="event-list-error">Ошибка: {error}</div>;
         }
         if (events.length === 0) {
-            return <div className="event-list-empty">Мероприятия не найдены.</div>;
+            return <div className="event-list-empty">Мероприятия не найдены. Попробуйте изменить фильтры.</div>;
         }
         return (
             <div className="event-grid">
@@ -88,6 +85,7 @@ const EventList: React.FC<EventListProps> = ({
                                 src={event.image_url || '/assets/main/card-background.jpg'} 
                                 alt={event.title} 
                                 className="event-card-image"
+                                loading="lazy"
                             />
                             <div className="event-card-type-badge">{event.event_type}</div>
                         </div>
@@ -103,18 +101,7 @@ const EventList: React.FC<EventListProps> = ({
                             </header>
                             <p className="event-card-description">{event.description}</p>
                             <footer className="event-card-footer">
-                                <div className="event-card-roles">
-                                    <PeopleIcon />
-                                    <div className="event-card-role-tags">
-                                        {event.roles_available.slice(0, 3).map(role => (
-                                            <span key={role} className="role-tag">{role}</span>
-                                        ))}
-                                        {event.roles_available.length > 3 && (
-                                            <span className="role-tag more-tag">...</span>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="event-card-actions">
+                                <div className="event-card-actions-wrapper">
                                     <button onClick={() => onViewDetails(event)} className="secondary-btn">Подробнее</button>
                                     {isAdmin && onEdit && onDelete && (
                                         <div className="admin-actions">
@@ -135,7 +122,7 @@ const EventList: React.FC<EventListProps> = ({
          <div className="card event-list-card">
             <div className="event-list-header">
                 <h2>Список мероприятий</h2>
-                 {isLoading && <span style={{ fontSize: '0.9em', color: '#777' }}>Обновление...</span>}
+                 {isLoading && <span className="event-list-loader-text">Обновление...</span>}
             </div>
             {renderContent()}
         </div>

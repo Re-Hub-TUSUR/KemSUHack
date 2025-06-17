@@ -1,6 +1,31 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useForm, SubmitHandler, Controller } from 'react-hook-form';
 import { Event, EventFormData, EventLocation, EventType, ParticipantRole } from '../types';
+
+const toLocalDateTimeString = (utcString?: string | null): string => {
+    if (!utcString) return '';
+    try {
+        const date = new Date(utcString);
+        const timezoneOffset = date.getTimezoneOffset() * 60000;
+        const localDate = new Date(date.getTime() - timezoneOffset);
+        return localDate.toISOString().slice(0, 16);
+    } catch (e) {
+        console.error("Error converting UTC to local datetime string:", e);
+        return '';
+    }
+};
+
+const toUTCISOString = (localDateTimeString?: string | null): string | undefined => {
+    if (!localDateTimeString) return undefined;
+    try {
+        const date = new Date(localDateTimeString);
+        if (isNaN(date.getTime())) return undefined;
+        return date.toISOString();
+    } catch (e) {
+        console.error("Error converting local datetime to UTC string:", e);
+        return undefined;
+    }
+};
 
 interface EventFormModalProps {
     isOpen: boolean;
@@ -9,29 +34,6 @@ interface EventFormModalProps {
     eventToEdit: Event | null;
     onDeleteImage: (eventId: number) => Promise<void>;
 }
-
-const formatDateTimeLocal = (isoString?: string | null): string => {
-    if (!isoString) return '';
-    try {
-        const date = new Date(isoString);
-        const timezoneOffset = date.getTimezoneOffset() * 60000;
-        const localDate = new Date(date.getTime() - timezoneOffset);
-        return localDate.toISOString().slice(0, 16);
-    } catch (e) {
-        return '';
-    }
-};
-
-const toISOStringUTC = (localDateTimeString?: string | null): string | undefined => {
-    if (!localDateTimeString) return undefined;
-    try {
-        const date = new Date(localDateTimeString);
-        if (isNaN(date.getTime())) return undefined;
-        return date.toISOString();
-    } catch (e) {
-        return undefined;
-    }
-};
 
 const EventFormModal: React.FC<EventFormModalProps> = ({ isOpen, onClose, onSubmit, eventToEdit, onDeleteImage }) => {
     const { register, handleSubmit, control, reset, watch, formState: { errors, isSubmitting } } = useForm<EventFormData>({
@@ -68,9 +70,13 @@ const EventFormModal: React.FC<EventFormModalProps> = ({ isOpen, onClose, onSubm
         if (isOpen) {
             if (eventToEdit) {
                 reset({
-                    title: eventToEdit.title, description: eventToEdit.description,
-                    start_datetime: formatDateTimeLocal(eventToEdit.start_datetime), end_datetime: formatDateTimeLocal(eventToEdit.end_datetime),
-                    location: eventToEdit.location, location_details: eventToEdit.location_details || '', event_type: eventToEdit.event_type,
+                    title: eventToEdit.title,
+                    description: eventToEdit.description,
+                    start_datetime: toLocalDateTimeString(eventToEdit.start_datetime),
+                    end_datetime: toLocalDateTimeString(eventToEdit.end_datetime),
+                    location: eventToEdit.location,
+                    location_details: eventToEdit.location_details || '',
+                    event_type: eventToEdit.event_type,
                     roles_available: eventToEdit.roles_available || [],
                     registration_link_participant: eventToEdit.registration_link_participant || '',
                     registration_link_volunteer: eventToEdit.registration_link_volunteer || '',
@@ -91,8 +97,14 @@ const EventFormModal: React.FC<EventFormModalProps> = ({ isOpen, onClose, onSubm
     }, [isOpen, eventToEdit, reset]);
 
     const handleFormSubmit: SubmitHandler<EventFormData> = async (data) => {
-        const payload: EventFormData = { ...data, start_datetime: toISOStringUTC(data.start_datetime) || '', end_datetime: toISOStringUTC(data.end_datetime) };
-        if (!payload.end_datetime) delete payload.end_datetime;
+        const payload: EventFormData = {
+            ...data,
+            start_datetime: toUTCISOString(data.start_datetime) || '',
+            end_datetime: toUTCISOString(data.end_datetime),
+        };
+        if (!payload.end_datetime) {
+            delete (payload as Partial<EventFormData>).end_datetime;
+        }
         
         try {
             await onSubmit(payload, selectedFile);
@@ -125,7 +137,7 @@ const EventFormModal: React.FC<EventFormModalProps> = ({ isOpen, onClose, onSubm
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-content event-form-modal" onClick={(e) => e.stopPropagation()}>
-                <button onClick={onClose} className="auth-modal-close-btn" disabled={isSubmitting}>×</button>
+                <button onClick={onClose} className="auth-modal-close-btn" disabled={isSubmitting || isDeletingImage}>×</button>
                 <h2>{eventToEdit ? 'Редактировать мероприятие' : 'Добавить мероприятие'}</h2>
 
                 <form onSubmit={handleSubmit(handleFormSubmit)} className="form" noValidate>
@@ -133,7 +145,7 @@ const EventFormModal: React.FC<EventFormModalProps> = ({ isOpen, onClose, onSubm
                         <label htmlFor="image">Изображение мероприятия</label>
                         <input type="file" id="image" accept="image/png, image/jpeg, image/gif, image/webp" className="form-control" onChange={handleFileChange} disabled={isSubmitting || isDeletingImage} />
                         <small style={{ color: 'var(--text-color-muted)', marginTop: '5px', display: 'block' }}>
-                            Рекомендуемое соотношение сторон 16:9. Изображение будет вписано автоматически.
+                            Рекомендуемое соотношение сторон 16:9.
                         </small>
                         {preview && (
                              <div style={{ marginTop: '10px' }}>
