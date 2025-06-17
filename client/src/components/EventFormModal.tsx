@@ -7,6 +7,7 @@ interface EventFormModalProps {
     onClose: () => void;
     onSubmit: (data: EventFormData, imageFile: File | null) => Promise<void>;
     eventToEdit: Event | null;
+    onDeleteImage: (eventId: number) => Promise<void>;
 }
 
 const formatDateTimeLocal = (isoString?: string | null): string => {
@@ -32,7 +33,7 @@ const toISOStringUTC = (localDateTimeString?: string | null): string | undefined
     }
 };
 
-const EventFormModal: React.FC<EventFormModalProps> = ({ isOpen, onClose, onSubmit, eventToEdit }) => {
+const EventFormModal: React.FC<EventFormModalProps> = ({ isOpen, onClose, onSubmit, eventToEdit, onDeleteImage }) => {
     const { register, handleSubmit, control, reset, watch, formState: { errors, isSubmitting } } = useForm<EventFormData>({
         mode: 'onBlur',
         defaultValues: {
@@ -44,6 +45,7 @@ const EventFormModal: React.FC<EventFormModalProps> = ({ isOpen, onClose, onSubm
     
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
+    const [isDeletingImage, setIsDeletingImage] = useState(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -84,6 +86,7 @@ const EventFormModal: React.FC<EventFormModalProps> = ({ isOpen, onClose, onSubm
                 setPreview(null);
             }
             setSelectedFile(null);
+            setIsDeletingImage(false);
         }
     }, [isOpen, eventToEdit, reset]);
 
@@ -98,6 +101,25 @@ const EventFormModal: React.FC<EventFormModalProps> = ({ isOpen, onClose, onSubm
         }
     };
 
+    const handleDeleteImage = async () => {
+        if (!eventToEdit?.id) return;
+
+        if (!window.confirm("Вы уверены, что хотите удалить текущее изображение? Это действие нельзя будет отменить.")) {
+            return;
+        }
+
+        setIsDeletingImage(true);
+        try {
+            await onDeleteImage(eventToEdit.id);
+            setPreview(null);
+            setSelectedFile(null);
+        } catch (error) {
+            console.error("Failed to delete image:", error);
+        } finally {
+            setIsDeletingImage(false);
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -109,12 +131,25 @@ const EventFormModal: React.FC<EventFormModalProps> = ({ isOpen, onClose, onSubm
                 <form onSubmit={handleSubmit(handleFormSubmit)} className="form" noValidate>
                     <div className="form-group full-width">
                         <label htmlFor="image">Изображение мероприятия</label>
-                        <input type="file" id="image" accept="image/png, image/jpeg, image/gif, image/webp" className="form-control" onChange={handleFileChange} disabled={isSubmitting} />
+                        <input type="file" id="image" accept="image/png, image/jpeg, image/gif, image/webp" className="form-control" onChange={handleFileChange} disabled={isSubmitting || isDeletingImage} />
                         <small style={{ color: 'var(--text-color-muted)', marginTop: '5px', display: 'block' }}>
                             Рекомендуемое соотношение сторон 16:9. Изображение будет вписано автоматически.
                         </small>
                         {preview && (
-                            <img src={preview} alt="Предпросмотр" style={{ width: '100%', maxHeight: '200px', marginTop: '10px', objectFit: 'contain', borderRadius: '8px' }}/>
+                             <div style={{ marginTop: '10px' }}>
+                                <img src={preview} alt="Предпросмотр" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px' }}/>
+                                {eventToEdit && (
+                                     <button
+                                        type="button"
+                                        onClick={handleDeleteImage}
+                                        className="secondary-btn small-btn"
+                                        style={{ marginTop: '10px', background: 'var(--danger-color)', color: 'white', borderColor: 'var(--danger-color)' }}
+                                        disabled={isDeletingImage || isSubmitting}
+                                     >
+                                        {isDeletingImage ? 'Удаление...' : 'Удалить изображение'}
+                                     </button>
+                                )}
+                            </div>
                         )}
                     </div>
                     
@@ -188,7 +223,7 @@ const EventFormModal: React.FC<EventFormModalProps> = ({ isOpen, onClose, onSubm
                         </div>
                     </div>
                     <div className="form-submit-btn-wrapper" style={{ paddingBottom: '1.5rem' }}>
-                        <button type="submit" className="form-submit-btn primary-btn" disabled={isSubmitting}>
+                        <button type="submit" className="form-submit-btn primary-btn" disabled={isSubmitting || isDeletingImage}>
                             {isSubmitting ? 'Сохранение...' : (eventToEdit ? 'Сохранить изменения' : 'Добавить мероприятие')}
                         </button>
                     </div>

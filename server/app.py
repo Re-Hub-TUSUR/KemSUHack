@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 
 from config import Config
 from auth_routes import register_auth_routes
-from models import db, bcrypt, Event
+from models import db, bcrypt, Event, Role, ParticipantRoleEnum
 from logging_config import setup_logging
 from event_routes import register_event_routes
 
@@ -34,61 +34,60 @@ migrate = Migrate(app, db)
 register_auth_routes(app)
 register_event_routes(app)
 
+@app.cli.command("init-db")
+def init_db_command():
+    """Initializes the database and populates the roles table."""
+    db.create_all()
+    
+    for role_enum in ParticipantRoleEnum:
+        if not Role.query.filter_by(name=role_enum).first():
+            db.session.add(Role(name=role_enum))
+            print(f"Role '{role_enum.value}' created.")
+    
+    db.session.commit()
+    print("Database initialized and roles populated.")
+
 @app.route('/uploads/<path:filename>')
 def serve_upload(filename):
     return send_from_directory(Config.UPLOAD_FOLDER, filename)
 
-upcoming_event_notifications_sent = set()
-
 def check_upcoming_events():
     with app.app_context():
-        now = datetime.now(timezone.utc)
-        soon_threshold = now + timedelta(days=1)
-        upcoming = Event.query.filter(
-            Event.start_datetime > now,
+        now_utc = datetime.now(timezone.utc)
+        soon_threshold = now_utc + timedelta(days=1)
+        
+        upcoming_events = Event.query.filter(
+            Event.start_datetime > now_utc,
             Event.start_datetime <= soon_threshold,
-            Event.id.notin_(upcoming_event_notifications_sent)
+            Event.notification_sent_at.is_(None)
         ).all()
 
-        if upcoming:
-            logger.info(f"Найдены предстоящие события (за день) для уведомления: {[e.id for e in upcoming]}")
+        if upcoming_events:
+            logger.info(f"Найдены предстоящие события для уведомления: {[e.id for e in upcoming_events]}")
 
-        for event in upcoming:
+        for event in upcoming_events:
             try:
                 logger.info(f"Отправка уведомления о событии ID: {event.id} ('{event.title}')")
+        
+                local_start_time = event.start_datetime.strftime('%d.%m.%Y в %H:%M')
+                
                 notification_data = {
                     'eventId': event.id,
                     'title': 'Скоро начнется!',
-                    'message': f"Мероприятие '{event.title}' начнется {event.start_datetime.strftime('%d.%m.%Y в %H:%M')} (UTC).",
+                    'message': f"Мероприятие '{event.title}' начнется {local_start_time} (UTC).",
                 }
                 socketio.emit('upcoming_event', notification_data)
-                upcoming_event_notifications_sent.add(event.id)
+                
+                event.notification_sent_at = now_utc
+                db.session.add(event)
+                
                 logger.info(f"Уведомление 'upcoming_event' о событии ID: {event.id} отправлено.")
             except Exception as e:
                  logger.error(f"Ошибка при отправке уведомления 'upcoming_event' о событии ID {event.id}: {e}", exc_info=True)
+                 db.session.rollback()
+                 continue 
 
-        cleanup_threshold = now - timedelta(days=1)
-        expired_ids = set()
-        current_sent_ids = list(upcoming_event_notifications_sent)
-
-        for event_id in current_sent_ids:
-            event = Event.query.get(event_id)
-            if event is None:
-                expired_ids.add(event_id)
-                continue
-
-            event_start_dt_naive = event.start_datetime
-            if event_start_dt_naive.tzinfo is None:
-                 event_start_dt_aware = event_start_dt_naive.replace(tzinfo=timezone.utc)
-            else:
-                 event_start_dt_aware = event_start_dt_naive
-
-            if event_start_dt_aware < cleanup_threshold:
-                expired_ids.add(event_id)
-
-        if expired_ids:
-             upcoming_event_notifications_sent.difference_update(expired_ids)
-             logger.info(f"Очищены старые ID уведомлений: {expired_ids}")
+        db.session.commit()
 
 scheduler = BackgroundScheduler(daemon=True)
 scheduler.add_job(check_upcoming_events, 'interval', minutes=5)
@@ -102,7 +101,6 @@ def handle_connect():
 @socketio.on('disconnect')
 def handle_disconnect():
     logger.info(f'Клиент отключился: {request.sid}')
-
 
 if __name__ == '__main__':
     logger.info("Запуск Flask-SocketIO приложения...")

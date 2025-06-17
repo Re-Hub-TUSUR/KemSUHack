@@ -20,10 +20,22 @@ class EventType(enum.Enum):
     EDUCATIONAL = "Просветительское"
     OTHER = "Другое"
 
-class ParticipantRole(enum.Enum):
+class ParticipantRoleEnum(enum.Enum):
     PARTICIPANT = "Участник"
     VOLUNTEER = "Волонтёр"
     ORGANIZER = "Организатор"
+
+class Role(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.Enum(ParticipantRoleEnum), unique=True, nullable=False)
+
+    def __repr__(self):
+        return f'<Role {self.name.value}>'
+    
+event_roles = db.Table('event_roles',
+    db.Column('event_id', db.Integer, db.ForeignKey('event.id'), primary_key=True),
+    db.Column('role_id', db.Integer, db.ForeignKey('role.id'), primary_key=True)
+)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -52,7 +64,14 @@ class Event(db.Model):
     location = db.Column(db.Enum(EventLocation), nullable=False)
     location_details = db.Column(db.String(200), nullable=True)
     event_type = db.Column(db.Enum(EventType), nullable=False)
-    roles_available = db.Column(db.String(150), nullable=False)
+    
+    roles = db.relationship(
+        'Role', 
+        secondary=event_roles,
+        lazy='subquery',
+        backref=db.backref('events', lazy=True)
+    )
+    
     registration_link_participant = db.Column(db.String(500), nullable=True)
     registration_link_volunteer = db.Column(db.String(500), nullable=True)
     registration_link_organizer = db.Column(db.String(500), nullable=True)
@@ -60,12 +79,7 @@ class Event(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
-    def get_roles_list(self):
-        return self.roles_available.split(',') if self.roles_available else []
-
-    def set_roles_list(self, roles):
-        self.roles_available = ','.join(role.value for role in roles if isinstance(role, ParticipantRole))
+    notification_sent_at = db.Column(db.DateTime, nullable=True)
 
     def to_dict(self):
         return {
@@ -77,7 +91,7 @@ class Event(db.Model):
             'location': self.location.value if self.location else None,
             'location_details': self.location_details,
             'event_type': self.event_type.value if self.event_type else None,
-            'roles_available': self.get_roles_list(),
+            'roles_available': [role.name.value for role in self.roles],
             'registration_link_participant': self.registration_link_participant,
             'registration_link_volunteer': self.registration_link_volunteer,
             'registration_link_organizer': self.registration_link_organizer,
