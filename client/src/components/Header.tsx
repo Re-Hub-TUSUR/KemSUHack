@@ -1,7 +1,11 @@
-import React, { useState, useEffect, useRef, memo } from 'react';
-import { User } from '../types';
+import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
+import { User, Notification } from '../types';
 import '../styles/Header.css';
+import '../styles/NotificationDropdown.css';
 import { BellIcon, UserPlaceholderIcon } from './icons';
+import NotificationDropdown from './NotificationDropdown';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   user: User | null;
@@ -16,28 +20,82 @@ const Header: React.FC<HeaderProps> = ({
   onNavigate,
   viewMode,
 }) => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { fetchWithAuth } = useAuth();
+  const navigate = useNavigate();
+
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
   const avatarButtonRef = useRef<HTMLButtonElement>(null);
 
-  const userAvatar = user?.avatarUrl || null; 
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const notificationDropdownRef = useRef<HTMLDivElement>(null);
+  const bellButtonRef = useRef<HTMLButtonElement>(null);
+
+  const fetchNotifications = useCallback(async () => {
+    if (!user) return;
+    try {
+      const response = await fetchWithAuth('/api/notifications');
+      if (response.ok) {
+        const data: Notification[] = await response.json();
+        setNotifications(data);
+        setUnreadCount(data.filter(n => !n.is_read).length);
+      }
+    } catch (error) {
+      console.error("Ошибка при загрузке уведомлений:", error);
+    }
+  }, [user, fetchWithAuth]);
 
   useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+  
+  const handleMarkAsRead = async () => {
+    if (unreadCount === 0) return;
+    try {
+      await fetchWithAuth('/api/notifications/mark-as-read', { method: 'POST' });
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("Ошибка при пометке уведомлений как прочитанных:", error);
+    }
+  };
+
+  const handleNotificationClick = async (notification: Notification) => {
+    setIsNotificationOpen(false);
+
+    if (!notification.is_read) {
+        try {
+            await fetchWithAuth(`/api/notifications/${notification.id}/mark-as-read`, { method: 'POST' });
+            setNotifications(prev =>
+                prev.map(n => n.id === notification.id ? { ...n, is_read: true } : n)
+            );
+            setUnreadCount(prev => Math.max(0, prev - 1));
+        } catch (error) {
+            console.error("Ошибка при пометке уведомления как прочитанного:", error);
+        }
+    }
+
+    if (notification.event_id) {
+      navigate('/', { state: { openEventId: notification.event_id } });
+    }
+  };
+
+  const userAvatar = user?.avatarUrl || null; 
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (isDropdownOpen && 
-          dropdownRef.current && 
-          !dropdownRef.current.contains(event.target as Node) &&
-          avatarButtonRef.current &&
-          !avatarButtonRef.current.contains(event.target as Node)
-          ) {
-        setIsDropdownOpen(false);
+      if (isUserDropdownOpen && userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node) && avatarButtonRef.current && !avatarButtonRef.current.contains(event.target as Node)) {
+        setIsUserDropdownOpen(false);
+      }
+      if (isNotificationOpen && notificationDropdownRef.current && !notificationDropdownRef.current.contains(event.target as Node) && bellButtonRef.current && !bellButtonRef.current.contains(event.target as Node)) {
+        setIsNotificationOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isDropdownOpen]);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isUserDropdownOpen, isNotificationOpen]);
+
 
   return (
     <header className="app-header">
@@ -63,17 +121,37 @@ const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="app-header-right">
-        <button className="app-header-action-btn" title="Уведомления" aria-label="Уведомления">
-          <BellIcon />
-        </button>
+        <div className="app-header-user-menu">
+          <button
+            ref={bellButtonRef}
+            onClick={() => setIsNotificationOpen(prev => !prev)}
+            className="app-header-action-btn"
+            title="Уведомления"
+            aria-label="Уведомления"
+          >
+            <BellIcon />
+            {unreadCount > 0 && (
+              <span className="app-header-notification-badge">{unreadCount}</span>
+            )}
+          </button>
+          <div ref={notificationDropdownRef}>
+            <NotificationDropdown
+              isOpen={isNotificationOpen}
+              notifications={notifications}
+              onMarkAsRead={handleMarkAsRead}
+              onNotificationClick={handleNotificationClick}
+              hasUnread={unreadCount > 0}
+            />
+          </div>
+        </div>
         
-        <div className="app-header-user-menu" ref={dropdownRef}>
+        <div className="app-header-user-menu" ref={userDropdownRef}>
           <button 
             ref={avatarButtonRef}
             className="app-header-user-avatar-button" 
             aria-label="Личный кабинет"
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            aria-expanded={isDropdownOpen}
+            onClick={() => setIsUserDropdownOpen(prev => !prev)}
+            aria-expanded={isUserDropdownOpen}
           >
             {userAvatar ? (
               <img src={userAvatar} alt={user?.username || 'Аватар пользователя'} className="header-user-avatar" />
@@ -81,14 +159,14 @@ const Header: React.FC<HeaderProps> = ({
               <UserPlaceholderIcon />
             )}
           </button>
-          <div className={`app-header-dropdown ${isDropdownOpen ? 'open' : ''}`}> 
+          <div className={`app-header-dropdown ${isUserDropdownOpen ? 'open' : ''}`}> 
             {user && <div className="dropdown-user-info">Привет, {user.username}!</div>}
-            <a href="/profile" className="dropdown-link" onClick={() => setIsDropdownOpen(false)}>Профиль</a>
-            <a href="/settings" className="dropdown-link" onClick={() => setIsDropdownOpen(false)}>Настройки</a>
+            <a href="/profile" className="dropdown-link" onClick={() => setIsUserDropdownOpen(false)}>Профиль</a>
+            <a href="/settings" className="dropdown-link" onClick={() => setIsUserDropdownOpen(false)}>Настройки</a>
             <button 
               onClick={() => {
                 onLogoutClick();
-                setIsDropdownOpen(false);
+                setIsUserDropdownOpen(false);
               }} 
               className="dropdown-link dropdown-logout-btn">
                 Выход

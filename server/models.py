@@ -46,6 +46,7 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     authored_events = db.relationship('Event', backref='author', lazy=True, cascade="all, delete-orphan")
     avatar_url = db.Column(db.String(500), nullable=True)
+    notifications = db.relationship('Notification', backref='user', lazy='dynamic', cascade="all, delete-orphan")
 
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
@@ -64,6 +65,28 @@ class User(db.Model):
 
     def __repr__(self):
         return f'<User {self.username}>'
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message = db.Column(db.String(500), nullable=False)
+    is_read = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id', ondelete='CASCADE'), nullable=True)
+    event = db.relationship('Event', backref=db.backref('notifications', lazy=True, cascade="all, delete-orphan"))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'message': self.message,
+            'is_read': self.is_read,
+            'created_at': self.created_at.isoformat(),
+            'event_id': self.event_id,
+            'event_title': self.event.title if self.event else None,
+        }
+
+    def __repr__(self):
+        return f'<Notification {self.id} for User {self.user_id}>'
 
 class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -1,6 +1,6 @@
 from typing import Optional
 from flask import request, jsonify
-from models import db, Event, User, EventLocation, EventType, Role, ParticipantRoleEnum
+from models import db, Event, User, EventLocation, EventType, Role, ParticipantRoleEnum, Notification
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import or_
 from datetime import datetime, timedelta, timezone
@@ -48,7 +48,7 @@ def check_admin_role(user_id):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in Config.ALLOWED_EXTENSIONS
 
-def register_event_routes(app):
+def register_event_routes(app, socketio):
     
     @app.route('/api/events', methods=['GET'])
     @jwt_required()
@@ -160,7 +160,35 @@ def register_event_routes(app):
             db.session.add(new_event)
             db.session.commit()
             logger.info(f"Event '{new_event.title}' (ID: {new_event.id}) created by user {current_user_id}")
-            
+
+            try:
+                socketio.emit('new_event_added', {
+                    'eventId': new_event.id,
+                    'eventTitle': new_event.title,
+                })
+                logger.info(f"Socket.IO 'new_event_added' emitted for event {new_event.id}")
+
+                users_to_notify = User.query.filter_by(is_admin=False).all()
+                notification_message = f"Добавлено новое мероприятие: «{new_event.title}»"
+                
+                notifications = []
+                for user in users_to_notify:
+                    notification = Notification(
+                        user_id=user.id,
+                        message=notification_message,
+                        event_id=new_event.id
+                    )
+                    notifications.append(notification)
+                
+                if notifications:
+                    db.session.add_all(notifications)
+                    db.session.commit()
+                    logger.info(f"Created {len(notifications)} DB notifications for event {new_event.id}")
+
+            except Exception as e:
+                logger.error(f"Failed to send notifications for new event {new_event.id}: {e}", exc_info=True)
+                db.session.rollback()
+
             return jsonify(new_event.to_dict()), 201
             
         except (ValueError, TypeError) as e:

@@ -80,6 +80,17 @@ const MainPage = () => {
     const handleCloseTopNotification = useCallback(() => {
         setTopNotification(null);
     }, []);
+    
+    useEffect(() => {
+        const eventIdToOpen = location.state?.openEventId;
+        if (eventIdToOpen && events.length > 0) {
+            const eventToShow = events.find(e => e.id === eventIdToOpen);
+            if (eventToShow) {
+                handleViewDetails(eventToShow);
+                navigate(location.pathname, { replace: true, state: {} });
+            }
+        }
+    }, [location.state, events, handleViewDetails, navigate]);
 
     const handleTopNotificationClick = useCallback((eventId?: number) => {
         if (eventId) {

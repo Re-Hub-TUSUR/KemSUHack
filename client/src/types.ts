@@ -28,6 +28,15 @@ export interface User {
   avatarUrl?: string | null;
 }
 
+export interface Notification {
+  id: number;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  event_id: number | null;
+  event_title: string | null;
+}
+
 export interface Event {
   id: number;
   title: string;

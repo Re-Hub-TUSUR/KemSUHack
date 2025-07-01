@@ -12,6 +12,7 @@ from auth_routes import register_auth_routes
 from models import db, bcrypt, Event, Role, ParticipantRoleEnum
 from logging_config import setup_logging
 from event_routes import register_event_routes
+from notification_routes import register_notification_routes
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -32,7 +33,8 @@ jwt = JWTManager(app)
 migrate = Migrate(app, db)
 
 register_auth_routes(app)
-register_event_routes(app)
+register_event_routes(app, socketio)
+register_notification_routes(app)
 
 @app.cli.command("init-db")
 def init_db_command():
