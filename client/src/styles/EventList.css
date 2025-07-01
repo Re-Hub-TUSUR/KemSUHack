@@ -43,9 +43,11 @@
   font-weight: 500;
 }
 
+/* --- ИЗМЕНЕНИЯ ЗДЕСЬ --- */
 .event-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 2rem;
 }
 
@@ -58,7 +60,9 @@
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--border-color);
+  width: 320px; /* Задаем базовую ширину для flex-элементов */
 }
+/* --- КОНЕЦ ИЗМЕНЕНИЙ --- */
 
 .event-card:hover {
   transform: translateY(-5px);
@@ -212,14 +216,14 @@
 }
 
 @media (max-width: 768px) {
-  .event-grid {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  .event-card {
+    width: 300px;
   }
 }
 
 @media (max-width: 480px) {
-  .event-grid {
-    grid-template-columns: 1fr;
+  .event-card {
+    width: 100%;
   }
   .event-card-footer {
     justify-content: stretch;
