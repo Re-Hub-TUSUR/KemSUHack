@@ -42,7 +42,6 @@ import { EventFilters } from '../types';
 const SOCKET_SERVER_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
 const NOTIFICATION_TIMEOUT = 5000;
 
-type ViewMode = 'list' | 'calendar';
 type NotificationData = {
   title: string;
   message: string;
@@ -74,8 +73,12 @@ const MainPage = () => {
     const socketRef = useRef<Socket | null>(null);
 
     const showTopNotification = useCallback((title: string, message: string, eventId?: number) => {
+        if (!currentUser?.notifications_enabled) {
+            console.log("Уведомления отключены пользователем, пропуск push-уведомления.");
+            return;
+        }
         setTopNotification({ title, message, eventId, key: Date.now() });
-    }, []);
+    }, [currentUser?.notifications_enabled]);
 
     const handleCloseTopNotification = useCallback(() => {
         setTopNotification(null);
@@ -87,10 +90,12 @@ const MainPage = () => {
             const eventToShow = events.find(e => e.id === eventIdToOpen);
             if (eventToShow) {
                 handleViewDetails(eventToShow);
+                // Добавил location.pathname в зависимости, чтобы избежать предупреждения ESLint.
+                // При этом `replace: true` гарантирует, что история браузера не будет засоряться.
                 navigate(location.pathname, { replace: true, state: {} });
             }
         }
-    }, [location.state, events, handleViewDetails, navigate]);
+    }, [location.state, events, handleViewDetails, navigate, location.pathname]); // <-- Добавил location.pathname
 
     const handleTopNotificationClick = useCallback((eventId?: number) => {
         if (eventId) {
@@ -172,7 +177,6 @@ const MainPage = () => {
                 onClose={() => setIsMoreMenuOpen(false)} 
                 onLogoutClick={logout}
                 onProfileClick={() => navigate('/profile')}
-                onSettingsClick={() => toast.info("Страница настроек в разработке.")}
             />
             <EventDetailModal isOpen={isDetailModalOpen} onClose={handleCloseDetailModal} event={selectedEvent} />
             <EventFormModal isOpen={isFormModalOpen} onClose={handleCloseFormModal} onSubmit={handleSaveEvent} eventToEdit={eventToEdit} onDeleteImage={handleImageDelete} />

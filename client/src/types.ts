@@ -26,6 +26,7 @@ export interface User {
   email: string;
   is_admin: boolean;
   avatarUrl?: string | null;
+  notifications_enabled: boolean;
 }
 
 export interface Notification {

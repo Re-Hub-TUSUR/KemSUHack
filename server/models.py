@@ -44,6 +44,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(128), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    notifications_enabled = db.Column(db.Boolean, default=True, nullable=False)
     authored_events = db.relationship('Event', backref='author', lazy=True, cascade="all, delete-orphan")
     avatar_url = db.Column(db.String(500), nullable=True)
     notifications = db.relationship('Notification', backref='user', lazy='dynamic', cascade="all, delete-orphan")
@@ -60,7 +61,8 @@ class User(db.Model):
             'username': self.username,
             'email': self.email,
             'is_admin': self.is_admin,
-            'avatarUrl': self.avatar_url
+            'avatarUrl': self.avatar_url,
+            'notifications_enabled': self.notifications_enabled
         }
 
     def __repr__(self):

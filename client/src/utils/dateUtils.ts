@@ -86,3 +86,14 @@ export const formatSingleDateTime = (dateString: string | null | undefined): str
         return 'Ошибка даты';
     }
 };
+
+export const formatDateToICS = (isoString: string): string => {
+    try {
+        const date = parseISO(isoString);
+        if (isNaN(date.getTime())) return '';
+        return formatTz(date, 'yyyyMMdd\'T\'HHmmss', { timeZone: 'Asia/Krasnoyarsk' });
+    } catch (e) {
+        console.error("Error formatting date for ICS:", e);
+        return '';
+    }
+};

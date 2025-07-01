@@ -161,8 +161,7 @@ const Header: React.FC<HeaderProps> = ({
           </button>
           <div className={`app-header-dropdown ${isUserDropdownOpen ? 'open' : ''}`}> 
             {user && <div className="dropdown-user-info">Привет, {user.username}!</div>}
-            <a href="/profile" className="dropdown-link" onClick={() => setIsUserDropdownOpen(false)}>Профиль</a>
-            <a href="/settings" className="dropdown-link" onClick={() => setIsUserDropdownOpen(false)}>Настройки</a>
+            <a href="/profile" className="dropdown-link" onClick={() => { setIsUserDropdownOpen(false); navigate('/profile'); }}>Профиль</a>
             <button 
               onClick={() => {
                 onLogoutClick();

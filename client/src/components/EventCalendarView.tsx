@@ -1,8 +1,9 @@
 import React, { useState, memo, useCallback } from 'react';
-import { Calendar, momentLocalizer, ToolbarProps, NavigateAction, View } from 'react-big-calendar';
+import { Calendar, momentLocalizer, ToolbarProps, NavigateAction, View, Messages } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { Event, EventType } from '../types';
+import { generateICS, downloadICS } from '../utils/icsUtils';
 
 moment.locale('ru', {
   months : 'январь_февраль_март_апрель_май_июнь_июль_август_сентябрь_октябрь_ноябрь_декабрь'.split('_'),
@@ -39,9 +40,28 @@ interface CalendarEvent {
     resource: Event;
 }
 
-const CustomToolbar = (props: ToolbarProps<CalendarEvent, object>) => {
-    const { label, onNavigate } = props;
+interface CustomToolbarProps extends ToolbarProps<CalendarEvent, object> {
+    events: CalendarEvent[];
+}
+
+const CustomToolbar = (props: CustomToolbarProps) => {
+    const { label, onNavigate, events } = props;
     
+    const handleExport = useCallback(() => {
+        const currentMonthEvents = events.filter(event => 
+            moment(event.start).isSameOrBefore(moment(props.date).endOf('month')) &&
+            moment(event.end).isSameOrAfter(moment(props.date).startOf('month'))
+        ).map(event => event.resource);
+
+        if (currentMonthEvents.length === 0) {
+            alert('Нет мероприятий для экспорта в текущем месяце.');
+            return;
+        }
+        
+        const icsData = generateICS(currentMonthEvents);
+        downloadICS(icsData, `Мероприятия_КемГУ_${moment(props.date).format('YYYY-MM')}.ics`);
+    }, [events, props.date]);
+
     return (
         <div className="rbc-toolbar custom-toolbar">
             <span className="rbc-toolbar-label">{label}</span>
@@ -54,6 +74,10 @@ const CustomToolbar = (props: ToolbarProps<CalendarEvent, object>) => {
                 </button>
                 <button type="button" className="rbc-nav-btn" onClick={() => onNavigate('NEXT')}>
                     {'>'}
+                </button>
+                {/* Кнопка экспорта календаря */}
+                <button type="button" className="secondary-btn small-btn rbc-export-btn" onClick={handleExport}>
+                    Экспорт
                 </button>
             </span>
         </div>
@@ -144,7 +168,7 @@ const EventCalendarView: React.FC<EventCalendarViewProps> = ({
         }
     });
 
-    const messages = {
+    const messages: Messages = {
         month: 'Месяц',
         week: 'Неделя',
         day: 'День',
@@ -183,7 +207,7 @@ const EventCalendarView: React.FC<EventCalendarViewProps> = ({
                 messages={messages}
                 eventPropGetter={eventStyleGetter}
                 components={{
-                    toolbar: CustomToolbar
+                    toolbar: (toolbarProps) => <CustomToolbar {...toolbarProps} events={calendarEvents} />,
                 }}
                 popup={false}
             />

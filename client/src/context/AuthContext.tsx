@@ -12,6 +12,7 @@ interface AuthContextType {
     register: (formData: Record<string, string>) => Promise<void>;
     logout: () => void;
     updateUser: (data: Partial<User> | FormData) => Promise<void>;
+    updateUserSettings: (settings: { notifications_enabled: boolean }) => Promise<void>;
     changePassword: (passwordData: Record<string, string>) => Promise<void>;
     fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>;
 }
@@ -111,6 +112,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setCurrentUser(updatedUserData.user);
     };
 
+    const updateUserSettings = async (settings: { notifications_enabled: boolean }) => {
+        const response = await fetchWithAuth('/api/me/settings', {
+            method: 'PUT',
+            body: JSON.stringify(settings),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Не удалось обновить настройки');
+        }
+
+        const updatedUserData = await response.json();
+        setCurrentUser(updatedUserData.user);
+    };
+
     const changePassword = async (passwordData: Record<string, string>) => {
         const response = await fetchWithAuth('/api/me/change-password', {
             method: 'POST',
@@ -132,6 +148,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         register,
         logout: handleLogout,
         updateUser,
+        updateUserSettings,
         changePassword,
         fetchWithAuth
     };

@@ -168,13 +168,13 @@ def register_event_routes(app, socketio):
                 })
                 logger.info(f"Socket.IO 'new_event_added' emitted for event {new_event.id}")
 
-                users_to_notify = User.query.filter_by(is_admin=False).all()
+                users_to_notify = User.query.filter_by(is_admin=False, notifications_enabled=True).all()
                 notification_message = f"Добавлено новое мероприятие: «{new_event.title}»"
                 
                 notifications = []
-                for user in users_to_notify:
+                for user_to_notify in users_to_notify:
                     notification = Notification(
-                        user_id=user.id,
+                        user_id=user_to_notify.id,
                         message=notification_message,
                         event_id=new_event.id
                     )

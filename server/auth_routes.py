@@ -181,3 +181,28 @@ def register_auth_routes(app):
             db.session.rollback()
             logger.error(f"Error changing password for user {user.id}: {e}", exc_info=True)
             return jsonify({"error": "Ошибка сервера при смене пароля"}), 500
+
+    @app.route('/api/me/settings', methods=['PUT'])
+    @jwt_required()
+    def update_user_settings():
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        if not user:
+            return jsonify({"error": "Пользователь не найден"}), 404
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Нет данных для обновления"}), 400
+        
+        try:
+            if 'notifications_enabled' in data and isinstance(data['notifications_enabled'], bool):
+                user.notifications_enabled = data['notifications_enabled']
+
+            db.session.commit()
+            logger.info(f"User settings updated for user ID: {user.id}. Notifications enabled: {user.notifications_enabled}")
+            return jsonify(user=user.to_dict()), 200
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error updating settings for user {user.id}: {e}", exc_info=True)
+            return jsonify({"error": "Ошибка сервера при обновлении настроек"}), 500

@@ -17,7 +17,7 @@ const mockUpcomingEvents: Event[] = [];
 const mockPastEvents: Event[] = [];
 
 const ProfilePage = () => {
-    const { currentUser, logout, updateUser, changePassword } = useAuth();
+    const { currentUser, logout, updateUser, changePassword, updateUserSettings } = useAuth();
     const navigate = useNavigate();
     const [isMoreMenuOpen, setIsMoreMenuOpen] = React.useState(false);
 
@@ -51,6 +51,16 @@ const ProfilePage = () => {
         }
     };
     
+    const handleToggleNotifications = async (enabled: boolean) => {
+        try {
+            await updateUserSettings({ notifications_enabled: enabled });
+            toast.success(`Уведомления ${enabled ? 'включены' : 'выключены'}`);
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Ошибка обновления настроек");
+            throw error;
+        }
+    };
+
     const handleNavigate = (view: 'list' | 'calendar') => {
         navigate('/', { state: { view: view } });
     };
@@ -92,13 +102,16 @@ const ProfilePage = () => {
                     </div>
                     <div className="profile-grid-sidebar">
                         <SecurityCard onSubmit={handleChangePassword} />
-                        <NotificationsCard />
+                        <NotificationsCard 
+                            currentUser={currentUser}
+                            onToggleNotifications={handleToggleNotifications}
+                        />
                     </div>
                 </div>
             </main>
             
             <BottomNavigationBar 
-                activeView={null} // ИСПРАВЛЕНИЕ: Ничего не подсвечиваем в BottomNav
+                activeView={null}
                 onMoreClick={() => setIsMoreMenuOpen(true)} 
                 EventsIconComp={EventsIconBottomNav} 
                 CalendarIconComp={CalendarIconBottomNav} 
@@ -109,7 +122,6 @@ const ProfilePage = () => {
                 onClose={() => setIsMoreMenuOpen(false)} 
                 onLogoutClick={logout}
                 onProfileClick={() => navigate('/profile')}
-                onSettingsClick={() => toast.info("Страница настроек в разработке.")}
             />
 
             <ToastContainer position="bottom-right" autoClose={4000} theme="colored" />
