@@ -64,6 +64,7 @@ python -c 'import secrets; print(secrets.token_hex(32))'
 flask db init
 flask db migrate -m "Initial migration."
 flask db upgrade
+flask init-db
 ```
 
 Если в будущем вы измените модели (models.py), повторите:
