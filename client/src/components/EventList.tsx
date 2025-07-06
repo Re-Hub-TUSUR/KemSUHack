@@ -13,6 +13,7 @@ interface EventListProps {
     onDelete?: (eventId: number) => void;
     onRestore?: (eventId: number) => void;
     onHardDelete?: (eventId: number) => void;
+    onParticipationToggle?: (eventId: number, isParticipating: boolean) => Promise<void>;
     isArchiveMode: boolean;
 }
 
@@ -24,9 +25,10 @@ const EventList: React.FC<EventListProps> = ({
     onViewDetails,
     onEdit,
     onDelete,
-    onRestore, 
-    onHardDelete, 
-    isArchiveMode, 
+    onRestore,
+    onHardDelete,
+    onParticipationToggle,
+    isArchiveMode,
 }) => {
 
     const renderContent = () => {
@@ -44,9 +46,9 @@ const EventList: React.FC<EventListProps> = ({
                 {events.map(event => (
                     <article key={event.id} className="event-card">
                         <div className="event-card-image-wrapper" onClick={() => onViewDetails(event)}>
-                            <img 
-                                src={event.image_url || '/assets/main/card-background.png'} 
-                                alt={event.title} 
+                            <img
+                                src={event.image_url || '/assets/main/card-background.png'}
+                                alt={event.title}
                                 className="event-card-image"
                                 loading="lazy"
                             />
@@ -65,7 +67,18 @@ const EventList: React.FC<EventListProps> = ({
                             <p className="event-card-description">{event.description}</p>
                             <footer className="event-card-footer">
                                 <div className="event-card-actions-wrapper">
-                                    <button onClick={() => onViewDetails(event)} className="secondary-btn">Подробнее</button>
+                                    <div className="user-actions-group">
+                                        {!isAdmin && !isArchiveMode && onParticipationToggle && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onParticipationToggle(event.id, event.is_participating || false); }}
+                                                className={`primary-btn small-btn participate-btn ${event.is_participating ? 'participating' : ''}`}
+                                            >
+                                                {event.is_participating ? 'Я записан' : 'Пойду'}
+                                            </button>
+                                        )}
+                                        <button onClick={() => onViewDetails(event)} className="secondary-btn">Подробнее</button>
+                                    </div>
+
                                     {isAdmin && (
                                         <div className="admin-actions">
                                             {onEdit && (
@@ -93,7 +106,7 @@ const EventList: React.FC<EventListProps> = ({
     return (
          <div className="card event-list-card">
             <div className="event-list-header">
-                <h2>{isArchiveMode ? 'Архив мероприятий' : 'Список мероприятий'}</h2> 
+                <h2>{isArchiveMode ? 'Архив мероприятий' : 'Список мероприятий'}</h2>
                  {isLoading && <span className="event-list-loader-text">Обновление...</span>}
             </div>
             {renderContent()}

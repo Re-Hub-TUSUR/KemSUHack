@@ -223,11 +223,47 @@
     font-weight: 500;
     cursor: pointer;
     transition: filter 0.2s;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .popup-event-item:hover {
     filter: brightness(0.9);
+}
+
+.popup-event-title-link {
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: white;
+    text-decoration: none;
+}
+
+.calendar-participate-btn {
+    background-color: rgba(255, 255, 255, 0.2); 
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+}
+
+.calendar-participate-btn:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+.calendar-participate-btn.participating {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-color: rgba(0, 0, 0, 0.5);
+}
+
+.calendar-participate-btn.participating:hover {
+    background-color: rgba(0, 0, 0, 0.4);
 }

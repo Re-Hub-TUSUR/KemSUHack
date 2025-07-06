@@ -58,6 +58,22 @@ export interface Event {
   author_username?: string;
   is_archived: boolean;
   archived_at?: string | null;
+  is_participating?: boolean;
+}
+
+export interface Participation {
+  id: number;
+  user_id: number;
+  event_id: number;
+  event_title: string;
+  role_name: ParticipantRole;
+  is_registered: boolean;
+  attended: boolean;
+  registered_at: string;
+  event_start_datetime: string;
+  event_end_datetime?: string | null;
+  event_image_url?: string | null;
+  event_location: EventLocation;
 }
 
 export interface EventFilters {

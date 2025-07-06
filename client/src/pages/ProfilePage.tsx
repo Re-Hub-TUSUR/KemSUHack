@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import UserProfileCard from '../components/profile/UserProfileCard';
 import UserEventsCard from '../components/profile/UserEventsCard';
@@ -11,15 +11,33 @@ import BottomNavigationBar from '../components/BottomNavigationBar';
 import MoreMenuModal from '../components/MoreMenuModal';
 import { EventsIconBottomNav, CalendarIconBottomNav, ArchiveIconBottomNav } from '../components/icons'; 
 import '../styles/profile/ProfilePage.css';
-import { Event } from '../types';
-
-const mockUpcomingEvents: Event[] = [];
-const mockPastEvents: Event[] = [];
+import { Event, Participation } from '../types'; 
+import { useParticipation } from '../hooks/useParticipation'; 
 
 const ProfilePage = () => {
     const { currentUser, logout, updateUser, changePassword, updateUserSettings } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation(); 
+
     const [isMoreMenuOpen, setIsMoreMenuOpen] = React.useState(false);
+
+    const { 
+        participations, 
+        isLoadingParticipations, 
+        fetchUserParticipations, 
+        fetchParticipationCounts,
+        eventsVisitedCount,
+        totalParticipatedCount,
+    } = useParticipation();
+
+    const now = new Date();
+    const upcomingParticipations = participations.filter(p => new Date(p.event_start_datetime) >= now);
+    const pastParticipations = participations.filter(p => new Date(p.event_start_datetime) < now);
+
+    useEffect(() => {
+        fetchUserParticipations('all'); 
+        fetchParticipationCounts();
+    }, [fetchUserParticipations, fetchParticipationCounts]);
 
     const handleAvatarChange = async (file: File) => {
         const formData = new FormData();
@@ -77,9 +95,10 @@ const ProfilePage = () => {
                 user={currentUser} 
                 onLogoutClick={logout} 
                 onNavigate={handleNavigate} 
-                currentPath="/profile" 
-                activeViewMode={'list'}
-                onSwitchMainView={() => {}}
+                currentPath={location.pathname} 
+                activeViewMode={'list'} 
+                onSwitchMainView={() => {}} 
+                onSetRefetchNotifications={() => {}}
             />
             
             <main className={`profile-page-main ${ (typeof window !== 'undefined' && window.innerWidth <= 768) ? 'has-bottom-nav' : ''}`}>
@@ -93,13 +112,14 @@ const ProfilePage = () => {
                             onAvatarChange={handleAvatarChange}
                             onProfileUpdate={handleProfileUpdate}
                             stats={{
-                                events_visited: 0, 
+                                events_visited: eventsVisitedCount, 
                                 main_role: mainRole
                             }}
                         />
                         <UserEventsCard
-                            upcomingEvents={mockUpcomingEvents} 
-                            pastEvents={mockPastEvents} 
+                            upcomingEvents={upcomingParticipations} 
+                            pastEvents={pastParticipations} 
+                            isLoading={isLoadingParticipations} 
                         />
                     </div>
                     <div className="profile-grid-sidebar">
@@ -113,14 +133,14 @@ const ProfilePage = () => {
             </main>
             
             <BottomNavigationBar 
-                activeViewMode={'list'}
-                currentPath="/profile" 
+                activeViewMode={'list'} 
+                currentPath={location.pathname} 
                 onMoreClick={() => setIsMoreMenuOpen(true)} 
                 EventsIconComp={EventsIconBottomNav} 
                 CalendarIconComp={CalendarIconBottomNav} 
                 ArchiveIconComp={ArchiveIconBottomNav} 
                 onNavigate={handleNavigate} 
-                onSwitchMainView={() => {}}
+                onSwitchMainView={() => {}} 
             />
              <MoreMenuModal 
                 isOpen={isMoreMenuOpen} 

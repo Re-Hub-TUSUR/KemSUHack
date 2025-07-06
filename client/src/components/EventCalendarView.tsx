@@ -31,6 +31,7 @@ interface EventCalendarViewProps {
     isLoading: boolean;
     error: string | null;
     onViewDetails: (event: Event) => void;
+    onParticipationToggle?: (eventId: number, isParticipating: boolean) => Promise<void>;
 }
 
 interface CalendarEvent {
@@ -89,6 +90,7 @@ interface ShowMorePopupProps {
     date: Date;
     onClose: () => void;
     onSelectEvent: (event: CalendarEvent) => void;
+    onParticipationToggle?: (eventId: number, isParticipating: boolean) => Promise<void>;
 }
 
 const getEventColor = (eventType: EventType) => {
@@ -101,7 +103,7 @@ const getEventColor = (eventType: EventType) => {
     }
 }
 
-const ShowMorePopup: React.FC<ShowMorePopupProps> = ({ events, date, onClose, onSelectEvent }) => {
+const ShowMorePopup: React.FC<ShowMorePopupProps> = ({ events, date, onClose, onSelectEvent, onParticipationToggle }) => {
     return (
         <div className="show-more-popup-overlay" onClick={onClose}>
             <div className="show-more-popup" onClick={(e) => e.stopPropagation()}>
@@ -115,9 +117,16 @@ const ShowMorePopup: React.FC<ShowMorePopupProps> = ({ events, date, onClose, on
                             key={event.resource.id}
                             className="popup-event-item"
                             style={{ backgroundColor: getEventColor(event.resource.event_type) }}
-                            onClick={() => onSelectEvent(event)}
                         >
-                            {event.title}
+                            <span onClick={() => onSelectEvent(event)} className="popup-event-title-link">{event.title}</span>
+                            {onParticipationToggle && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onParticipationToggle(event.resource.id, event.resource.is_participating || false); }}
+                                    className={`secondary-btn small-btn calendar-participate-btn ${event.resource.is_participating ? 'participating' : ''}`}
+                                >
+                                    {event.resource.is_participating ? 'Записан' : 'Пойду'}
+                                </button>
+                            )}
                         </div>
                     ))}
                 </div>
@@ -131,6 +140,7 @@ const EventCalendarView: React.FC<EventCalendarViewProps> = ({
     isLoading,
     error,
     onViewDetails,
+    onParticipationToggle,
 }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [popupState, setPopupState] = useState<{ date: Date, events: CalendarEvent[] } | null>(null);
@@ -217,6 +227,7 @@ const EventCalendarView: React.FC<EventCalendarViewProps> = ({
                     date={popupState.date}
                     onClose={() => setPopupState(null)}
                     onSelectEvent={handleSelectEvent}
+                    onParticipationToggle={onParticipationToggle}
                 />
             )}
         </div>

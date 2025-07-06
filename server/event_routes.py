@@ -1,9 +1,9 @@
 from typing import Optional
 from flask import request, jsonify
-from models import db, Event, User, EventLocation, EventType, Role, ParticipantRoleEnum, Notification
+from models import db, Event, User, EventLocation, EventType, Role, ParticipantRoleEnum, Notification, Participation 
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy import or_, and_
-from datetime import datetime, timezone
+from sqlalchemy import or_, and_ 
+from datetime import datetime, timedelta, timezone
 import logging
 import os
 import uuid
@@ -54,6 +54,7 @@ def register_event_routes(app, socketio):
     @jwt_required()
     def get_events():
         try:
+            current_user_id = get_jwt_identity() 
             query = Event.query
             now_utc = datetime.now(timezone.utc)
 
@@ -62,13 +63,23 @@ def register_event_routes(app, socketio):
             if status_param == 'active':
                 query = query.filter(
                     Event.is_archived == False,
-                    or_(Event.end_datetime.is_(None), Event.end_datetime >= now_utc)
+                    or_(
+                        and_(Event.end_datetime.is_(None), Event.start_datetime >= now_utc),
+                        Event.end_datetime >= now_utc,
+                        and_(Event.start_datetime <= now_utc, Event.end_datetime >= now_utc) 
+                    )
                 )
             elif status_param == 'archive':
                 query = query.filter(
                     or_(
                         Event.is_archived == True,
-                        and_(Event.is_archived == False, Event.end_datetime < now_utc)
+                        and_(
+                            Event.is_archived == False,
+                            or_(
+                                and_(Event.end_datetime.is_(None), Event.start_datetime < now_utc),
+                                Event.end_datetime < now_utc
+                            )
+                        )
                     )
                 )
 
@@ -82,7 +93,7 @@ def register_event_routes(app, socketio):
             if search_term:
                 search_pattern = f"%{search_term}%"
                 query = query.filter(or_(Event.title.ilike(search_pattern), Event.description.ilike(search_pattern)))
-
+            
             if start_date_str:
                 start_date_utc = parse_datetime(start_date_str)
                 if start_date_utc:
@@ -112,10 +123,20 @@ def register_event_routes(app, socketio):
                 except ValueError: 
                     logger.warning(f"Invalid type filter value: {type_str}")
 
-            query = query.order_by(Event.start_datetime.asc())
+            if status_param == 'archive':
+                query = query.order_by(Event.start_datetime.desc())
+            else:
+                query = query.order_by(Event.start_datetime.asc())
+
             events = query.all()
             
-            events_data = [event.to_dict() for event in events]
+            events_data = []
+            for event in events:
+                event_dict = event.to_dict()
+                participation = Participation.query.filter_by(user_id=current_user_id, event_id=event.id).first()
+                event_dict['is_participating'] = True if participation else False
+                events_data.append(event_dict)
+
             return jsonify(events_data), 200
             
         except Exception as e:
@@ -126,9 +147,13 @@ def register_event_routes(app, socketio):
     @jwt_required()
     def get_event(event_id):
         try:
+            current_user_id = get_jwt_identity() 
             event = Event.query.get(event_id)
             if event: 
-                return jsonify(event.to_dict()), 200
+                event_dict = event.to_dict()
+                participation = Participation.query.filter_by(user_id=current_user_id, event_id=event_id).first()
+                event_dict['is_participating'] = True if participation else False
+                return jsonify(event_dict), 200
             else: 
                 return jsonify({"error": "Мероприятие не найдено"}), 404
         except Exception as e:
@@ -173,13 +198,13 @@ def register_event_routes(app, socketio):
                 registration_link_participant=data.get('registration_link_participant'),
                 registration_link_volunteer=data.get('registration_link_volunteer'),
                 registration_link_organizer=data.get('registration_link_organizer'), author_id=current_user_id,
-                is_archived=False,
-                archived_at=None
+                is_archived=False, 
+                archived_at=None 
             )
             new_event.roles = role_objects
             
             db.session.add(new_event)
-            db.session.commit()
+            db.session.commit() 
             logger.info(f"Event '{new_event.title}' (ID: {new_event.id}) created by user {current_user_id}")
 
             try:
@@ -189,33 +214,48 @@ def register_event_routes(app, socketio):
                 })
                 logger.info(f"Socket.IO 'new_event_added' emitted for event {new_event.id}")
 
-                users_to_notify = User.query.filter_by(is_admin=False, notifications_enabled=True).all()
-                notification_message = f"Добавлено новое мероприятие: «{new_event.title}»"
-                
-                notifications = []
-                for user_to_notify in users_to_notify:
-                    notification = Notification(
-                        user_id=user_to_notify.id,
-                        message=notification_message,
-                        event_id=new_event.id
-                    )
-                    notifications.append(notification)
-                
-                if notifications:
-                    db.session.add_all(notifications)
-                    db.session.commit()
-                    logger.info(f"Created {len(notifications)} DB notifications for event {new_event.id}")
+                users_to_notify_in_db = User.query.filter_by(is_admin=False, notifications_enabled=True).all()
+                logger.info(f"Found {len(users_to_notify_in_db)} non-admin users with notifications enabled for DB saving.")
+
+                if users_to_notify_in_db:
+                    notification_message = f"Добавлено новое мероприятие: «{new_event.title}»"
+                    notifications_to_add = []
+                    for user_to_notify in users_to_notify_in_db:
+                        existing_notification = Notification.query.filter(
+                            Notification.user_id == user_to_notify.id,
+                            Notification.event_id == new_event.id,
+                            Notification.message == notification_message,
+                            Notification.created_at > (datetime.now(timezone.utc) - timedelta(minutes=5)) 
+                        ).first()
+
+                        if not existing_notification:
+                            notification = Notification(
+                                user_id=user_to_notify.id,
+                                message=notification_message,
+                                event_id=new_event.id
+                            )
+                            notifications_to_add.append(notification)
+                        else:
+                            logger.debug(f"Skipping duplicate DB notification for user {user_to_notify.id} for new event {new_event.id}.")
+                    
+                    if notifications_to_add:
+                        db.session.add_all(notifications_to_add)
+                        db.session.commit() 
+                        logger.info(f"Created {len(notifications_to_add)} DB notifications for new event {new_event.id}")
+                else:
+                    logger.info("No non-admin users with notifications enabled to create DB notifications for.")
 
             except Exception as e:
-                logger.error(f"Failed to send notifications for new event {new_event.id}: {e}", exc_info=True)
-                db.session.rollback()
+                logger.error(f"Failed to process notifications for new event {new_event.id}: {e}", exc_info=True)
+                db.session.rollback() 
 
             return jsonify(new_event.to_dict()), 201
             
         except (ValueError, TypeError) as e:
+            db.session.rollback() 
             return jsonify({"error": f"Недопустимое значение или тип данных: {e}"}), 400
         except Exception as e:
-            db.session.rollback()
+            db.session.rollback() 
             logger.error(f"Error creating event: {e}", exc_info=True)
             return jsonify({"error": "Ошибка при создании мероприятия"}), 500
 

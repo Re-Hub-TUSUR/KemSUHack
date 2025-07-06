@@ -1,29 +1,40 @@
 import React, { useState } from 'react';
-import { Event } from '../../types';
+import { Participation } from '../../types';
 import { formatSingleDateTime } from '../../utils/dateUtils';
 import '../../styles/profile/UserEventsCard.css';
+import { useNavigate } from 'react-router-dom';
 
 interface UserEventsCardProps {
-    upcomingEvents: Event[];
-    pastEvents: Event[];
+    upcomingEvents: Participation[];
+    pastEvents: Participation[];
+    isLoading: boolean;
 }
 
-const EventItem: React.FC<{event: Event}> = ({ event }) => (
-    <div className="profile-event-item">
-        <div className="profile-event-date">
-            <span>{new Date(event.start_datetime).getDate()}</span>
-            <span>{new Date(event.start_datetime).toLocaleString('ru-RU', { month: 'short' })}</span>
+const EventItem: React.FC<{event: Participation}> = ({ event }) => {
+    const navigate = useNavigate();
+
+    const handleEventClick = () => {
+        navigate(`/events/${event.event_id}`, { state: { openEventId: event.event_id } });
+    };
+
+    return (
+        <div className="profile-event-item" onClick={handleEventClick}>
+            <div className="profile-event-date">
+                <span>{new Date(event.event_start_datetime).getDate()}</span>
+                <span>{new Date(event.event_start_datetime).toLocaleString('ru-RU', { month: 'short' })}</span>
+            </div>
+            <div className="profile-event-info">
+                <h4 className="profile-event-title">{event.event_title}</h4>
+                <p className="profile-event-datetime">{formatSingleDateTime(event.event_start_datetime)}</p>
+                <p className="profile-event-role">{event.role_name}</p> {/* Display role */}
+            </div>
+            <button className="profile-event-link" aria-label="Подробнее о мероприятии">→</button>
         </div>
-        <div className="profile-event-info">
-            <h4 className="profile-event-title">{event.title}</h4>
-            <p className="profile-event-datetime">{formatSingleDateTime(event.start_datetime)}</p>
-        </div>
-        <a href={`/events/${event.id}`} className="profile-event-link">→</a>
-    </div>
-);
+    );
+};
 
 
-const UserEventsCard: React.FC<UserEventsCardProps> = ({ upcomingEvents, pastEvents }) => {
+const UserEventsCard: React.FC<UserEventsCardProps> = ({ upcomingEvents, pastEvents, isLoading }) => {
     const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
 
     const eventsToShow = activeTab === 'upcoming' ? upcomingEvents : pastEvents;
@@ -46,11 +57,13 @@ const UserEventsCard: React.FC<UserEventsCardProps> = ({ upcomingEvents, pastEve
                 </button>
             </div>
             <div className="profile-events-list">
-                {eventsToShow.length > 0 ? (
+                {isLoading ? (
+                    <p className="no-events-placeholder">Загрузка ваших мероприятий...</p>
+                ) : eventsToShow.length > 0 ? (
                     eventsToShow.map(event => <EventItem key={event.id} event={event} />)
                 ) : (
                     <p className="no-events-placeholder">
-                        {activeTab === 'upcoming' ? 'Нет предстоящих мероприятий.' : 'Нет прошедших мероприятий.'}
+                        {activeTab === 'upcoming' ? 'Вы пока не записаны на предстоящие мероприятия.' : 'Вы не участвовали в прошедших мероприятиях.'}
                     </p>
                 )}
             </div>

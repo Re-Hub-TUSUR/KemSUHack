@@ -7,6 +7,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { useAuth } from '../context/AuthContext';
 import { useEvents } from '../hooks/useEvents';
 import { useEventActions } from '../hooks/useEventActions';
+import { useParticipation } from '../hooks/useParticipation'; 
 
 import '../index.css'; 
 import '../styles/App.css';
@@ -49,9 +50,9 @@ type NotificationData = {
 } | null;
 
 interface MainPageProps {
-    status: 'active' | 'archive';
-    activeViewMode: 'list' | 'calendar';
-    onSwitchMainView: (view: 'list' | 'calendar') => void;
+    status: 'active' | 'archive'; 
+    activeViewMode: 'list' | 'calendar'; 
+    onSwitchMainView: (view: 'list' | 'calendar') => void; 
 }
 
 const MainPage: React.FC<MainPageProps> = ({ status, activeViewMode, onSwitchMainView }) => {
@@ -73,6 +74,8 @@ const MainPage: React.FC<MainPageProps> = ({ status, activeViewMode, onSwitchMai
         handleSaveEvent, handleImageDelete, handleInitiateArchive, handleInitiateRestore, handleInitiateHardDelete,
         confirmActionType,
     } = useEventActions(fetchEvents);
+
+    const { registerForEvent, unregisterFromEvent, fetchUserParticipations } = useParticipation(); 
     
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
@@ -92,25 +95,36 @@ const MainPage: React.FC<MainPageProps> = ({ status, activeViewMode, onSwitchMai
         setTopNotification(null);
     }, []);
     
-    useEffect(() => {
-        const eventIdToOpen = location.state?.openEventId || (eventIdParam ? parseInt(eventIdParam) : undefined);
-        if (eventIdToOpen && events.length > 0) {
-            const eventToShow = events.find(e => e.id === eventIdToOpen);
+    const openEventDetailFromNotification = useCallback((id: number) => {
+        if (location.pathname !== '/') {
+            navigate('/', { state: { openEventId: id } });
+        } else {
+            const eventToShow = events.find(e => e.id === id);
             if (eventToShow) {
                 handleViewDetails(eventToShow);
-                navigate(location.pathname, { replace: true, state: {} });
+                onSwitchMainView('list');
+            } else {
+                navigate(location.pathname, { replace: true, state: { openEventId: id } });
             }
         }
-    }, [location.state, events, handleViewDetails, navigate, location.pathname, eventIdParam]);
+    }, [events, handleViewDetails, navigate, location.pathname, onSwitchMainView]);
+
+
+    useEffect(() => {
+        const eventIdToOpen = location.state?.openEventId || (eventIdParam ? parseInt(eventIdParam) : undefined);
+        if (eventIdToOpen) {
+            openEventDetailFromNotification(eventIdToOpen);
+        }
+    }, [location.state, eventIdParam, openEventDetailFromNotification]);
+
 
     const handleTopNotificationClick = useCallback((eventId?: number) => {
         if (eventId) {
-            const eventToShow = events.find(e => e.id === eventId);
-            if (eventToShow) handleViewDetails(eventToShow);
+            openEventDetailFromNotification(eventId);
         }
         handleCloseTopNotification();
         window.focus();
-    }, [events, handleViewDetails, handleCloseTopNotification]);
+    }, [openEventDetailFromNotification, handleCloseTopNotification]);
 
     useEffect(() => {
         let timer: NodeJS.Timeout | null = null;
@@ -124,21 +138,81 @@ const MainPage: React.FC<MainPageProps> = ({ status, activeViewMode, onSwitchMai
         };
     }, [topNotification, handleCloseTopNotification]);
     
+    const fetchNotificationsInHeaderRef = useRef<(() => Promise<void>) | null>(null);
+    const setFetchNotificationsInHeader = useCallback((fetchFunc: (() => Promise<void>) | null) => {
+        fetchNotificationsInHeaderRef.current = fetchFunc;
+    }, []);
+
     useEffect(() => {
-        if (isAuthenticated && !socketRef.current) {
-            const newSocket = io(SOCKET_SERVER_URL, { transports: ['websocket'] });
-            newSocket.on('connect_error', (error) => { console.error('Ошибка подключения WebSocket:', error); toast.error("Не удалось подключиться к серверу уведомлений."); });
-            newSocket.on('upcoming_event', (data) => showTopNotification(data.title, data.message, data.eventId));
-            newSocket.on('new_event_added', (data) => showTopNotification("Новое мероприятие!", `Добавлено: "${data.eventTitle}".`, data.eventId));
-            socketRef.current = newSocket;
+        if (isAuthenticated) {
+            if (!socketRef.current) {
+                const newSocket = io(SOCKET_SERVER_URL, { transports: ['websocket'] });
+                
+                newSocket.on('connect_error', (error) => { 
+                    console.error('Ошибка подключения WebSocket:', error); 
+                    toast.error("Не удалось подключиться к серверу уведомлений."); 
+                });
+
+                newSocket.on('new_event_added', (data) => {
+                    console.log("Socket: New event added received", data);
+                    showTopNotification("Новое мероприятие!", `Добавлено: "${data.eventTitle}".`, data.eventId);
+                    if (fetchNotificationsInHeaderRef.current) {
+                        fetchNotificationsInHeaderRef.current();
+                    } else {
+                        console.warn("Header's fetchNotifications function not yet available via ref in MainPage.");
+                    }
+                });
+                
+                newSocket.on('upcoming_event', (data) => {
+                    console.log("Socket: Upcoming event general received", data);
+                    showTopNotification(data.title, data.message, data.eventId);
+                    if (fetchNotificationsInHeaderRef.current) {
+                        fetchNotificationsInHeaderRef.current();
+                    }
+                });
+
+                newSocket.on('upcoming_event_for_user', (data) => {
+                    console.log("Socket: Upcoming event for user received", data);
+                    showTopNotification(data.title, data.message, data.eventId);
+                    if (fetchNotificationsInHeaderRef.current) {
+                        fetchNotificationsInHeaderRef.current();
+                    }
+                });
+                
+                newSocket.on('connect', () => {
+                    console.log("Socket connected, attempting authentication...");
+                    const token = localStorage.getItem('authToken');
+                    if (token) {
+                        newSocket.emit('authenticate_user', { token });
+                    } else {
+                        console.log("No auth token found for socket authentication.");
+                    }
+                });
+
+                newSocket.on('auth_success', (data) => {
+                    console.log("Socket authentication successful:", data);
+                });
+                newSocket.on('auth_failure', (data) => {
+                    console.error("Socket authentication failed:", data);
+                    toast.error("Ошибка аутентификации WebSocket.");
+                });
+
+                socketRef.current = newSocket;
+            }
         } else if (!isAuthenticated && socketRef.current) {
+            console.log("User logged out or not authenticated, disconnecting socket.");
             socketRef.current.disconnect();
             socketRef.current = null;
         }
         return () => {
-            socketRef.current?.disconnect();
+            if (socketRef.current) {
+                console.log("Cleaning up socket connection.");
+                socketRef.current.disconnect();
+                socketRef.current = null;
+            }
         };
-    }, [isAuthenticated, showTopNotification]);
+    }, [isAuthenticated, showTopNotification, setFetchNotificationsInHeader]); 
+
 
     const handleApplyFilters = useCallback((filtersToApply: EventFilters) => {
         setFilters(filtersToApply);
@@ -155,6 +229,20 @@ const MainPage: React.FC<MainPageProps> = ({ status, activeViewMode, onSwitchMai
         navigate(path);
     };
 
+    const handleParticipationToggle = async (eventId: number, isParticipating: boolean) => {
+        try {
+            if (isParticipating) {
+                await unregisterFromEvent(eventId);
+            } else {
+                await registerForEvent(eventId);
+            }
+            fetchEvents(); 
+            fetchUserParticipations(); 
+        } catch (error) {
+            console.error("Participation toggle failed:", error);
+        }
+    };
+
     return (
       <div className="app-container">
             <Header 
@@ -164,6 +252,7 @@ const MainPage: React.FC<MainPageProps> = ({ status, activeViewMode, onSwitchMai
                 currentPath={location.pathname} 
                 activeViewMode={activeViewMode} 
                 onSwitchMainView={onSwitchMainView} 
+                onSetRefetchNotifications={setFetchNotificationsInHeader} 
             />
             <div className="app-main-layout">
             <main className={`app-content-area ${ (typeof window !== 'undefined' && window.innerWidth <= 768) ? 'has-bottom-nav' : ''}`}>
@@ -184,14 +273,21 @@ const MainPage: React.FC<MainPageProps> = ({ status, activeViewMode, onSwitchMai
                         error={eventError} 
                         onViewDetails={handleViewDetails} 
                         onEdit={currentUser?.is_admin ? handleOpenEditForm : undefined} 
-                        onDelete={currentUser?.is_admin && !status ? handleInitiateArchive : undefined}
-                        onRestore={currentUser?.is_admin && status === 'archive' ? handleInitiateRestore : undefined}
-                        onHardDelete={currentUser?.is_admin && status === 'archive' ? handleInitiateHardDelete : undefined}
+                        onDelete={currentUser?.is_admin ? handleInitiateArchive : undefined} 
+                        onRestore={currentUser?.is_admin && status === 'archive' ? handleInitiateRestore : undefined} 
+                        onHardDelete={currentUser?.is_admin && status === 'archive' ? handleInitiateHardDelete : undefined} 
+                        onParticipationToggle={isAuthenticated && !currentUser?.is_admin ? handleParticipationToggle : undefined} 
                         isAdmin={currentUser?.is_admin ?? false}
                         isArchiveMode={status === 'archive'}
                     />
                 ) : (
-                    <EventCalendarView events={events} isLoading={isLoadingEvents} error={eventError} onViewDetails={handleViewDetails} />
+                    <EventCalendarView 
+                        events={events} 
+                        isLoading={isLoadingEvents} 
+                        error={eventError} 
+                        onViewDetails={handleViewDetails} 
+                        onParticipationToggle={isAuthenticated && !currentUser?.is_admin ? handleParticipationToggle : undefined} 
+                    />
                 )}
             </main>
             </div>
@@ -212,7 +308,12 @@ const MainPage: React.FC<MainPageProps> = ({ status, activeViewMode, onSwitchMai
                 onLogoutClick={logout}
                 onProfileClick={() => navigate('/profile')}
             />
-            <EventDetailModal isOpen={isDetailModalOpen} onClose={handleCloseDetailModal} event={selectedEvent} />
+            <EventDetailModal 
+                isOpen={isDetailModalOpen} 
+                onClose={handleCloseDetailModal} 
+                event={selectedEvent} 
+                onEventUpdate={fetchEvents} 
+            />
             <EventFormModal isOpen={isFormModalOpen} onClose={handleCloseFormModal} onSubmit={handleSaveEvent} eventToEdit={eventToEdit} onDeleteImage={handleImageDelete} />
             <EventFilterModal isOpen={isFilterModalOpen} onClose={() => setIsFilterModalOpen(false)} initialFilters={filters} onApplyFilters={handleApplyFilters} onResetFilters={handleResetFilters} />
             <ConfirmModal 

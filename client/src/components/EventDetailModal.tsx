@@ -2,14 +2,20 @@ import React from 'react';
 import { Event } from '../types';
 import { formatDate, formatDateTimeRange } from '../utils/dateUtils';
 import { CalendarIcon, LocationIcon, TypeIcon, LinkIcon, InfoIcon } from './icons';
+import { useAuth } from '../context/AuthContext';
+import { useParticipation } from '../hooks/useParticipation';
 
 interface EventDetailModalProps {
     isOpen: boolean;
     onClose: () => void;
     event: Event | null;
+    onEventUpdate?: () => void; 
 }
 
-const EventDetailModal: React.FC<EventDetailModalProps> = ({ isOpen, onClose, event }) => {
+const EventDetailModal: React.FC<EventDetailModalProps> = ({ isOpen, onClose, event, onEventUpdate }) => {
+    const { isAuthenticated, currentUser } = useAuth();
+    const { registerForEvent, unregisterFromEvent, fetchUserParticipations } = useParticipation();
+
     if (!isOpen || !event) {
         return null;
     }
@@ -26,6 +32,21 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({ isOpen, onClose, ev
         );
     }
 
+    const handleParticipationToggle = async () => {
+        if (!event.id) return;
+        try {
+            if (event.is_participating) {
+                await unregisterFromEvent(event.id);
+            } else {
+                await registerForEvent(event.id);
+            }
+            if (onEventUpdate) onEventUpdate();
+            fetchUserParticipations();
+        } catch (error) {
+            console.error("Participation toggle failed:", error);
+        }
+    };
+
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-content event-detail-modal" onClick={(e) => e.stopPropagation()}>
@@ -38,6 +59,18 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({ isOpen, onClose, ev
                 </button>
 
                 <h2>{event.title}</h2>
+
+                {/* NEW: Participation button at the top of details for non-admins on active events */}
+                {isAuthenticated && !currentUser?.is_admin && !event.is_archived && (
+                    <div className="detail-action-bar">
+                        <button 
+                            onClick={handleParticipationToggle} 
+                            className={`primary-btn participate-detail-btn ${event.is_participating ? 'participating' : ''}`}
+                        >
+                            {event.is_participating ? 'Я записан' : 'Пойду'}
+                        </button>
+                    </div>
+                )}
 
                 <div className="detail-section description-section">
                     <p style={{ whiteSpace: 'pre-wrap' }}>{event.description}</p>

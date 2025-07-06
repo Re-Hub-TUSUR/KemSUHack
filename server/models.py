@@ -15,7 +15,7 @@ class EventLocation(enum.Enum):
 
 class EventType(enum.Enum):
     SOCIAL = "Общественное"
-    CULTURAL = "Культурно-творческое"
+    CULTURAL = "Культурно-творческое",
     SPORTS = "Спортивное"
     EDUCATIONAL = "Просветительское"
     OTHER = "Другое"
@@ -48,6 +48,7 @@ class User(db.Model):
     authored_events = db.relationship('Event', backref='author', lazy=True, cascade="all, delete-orphan")
     avatar_url = db.Column(db.String(500), nullable=True)
     notifications = db.relationship('Notification', backref='user', lazy='dynamic', cascade="all, delete-orphan")
+    participations = db.relationship('Participation', backref='user', lazy='dynamic', cascade="all, delete-orphan")
 
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
@@ -89,6 +90,41 @@ class Notification(db.Model):
 
     def __repr__(self):
         return f'<Notification {self.id} for User {self.user_id}>'
+
+class Participation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+    role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=False) 
+    is_registered = db.Column(db.Boolean, default=True, nullable=False) 
+    attended = db.Column(db.Boolean, default=False, nullable=False) 
+    registered_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    reminder_sent_at = db.Column(db.DateTime, nullable=True)
+
+    event = db.relationship('Event', backref=db.backref('participations', lazy=True, cascade="all, delete-orphan"))
+    role = db.relationship('Role')
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'event_id', name='_user_event_uc'),)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'event_id': self.event_id,
+            'event_title': self.event.title,
+            'role_name': self.role.name.value,
+            'is_registered': self.is_registered,
+            'attended': self.attended,
+            'registered_at': self.registered_at.isoformat(),
+            'event_start_datetime': self.event.start_datetime.isoformat(),
+            'event_end_datetime': self.event.end_datetime.isoformat() if self.event.end_datetime else None,
+            'event_image_url': self.event.image_url,
+            'event_location': self.event.location.value,
+            'reminder_sent_at': self.reminder_sent_at.isoformat() if self.reminder_sent_at else None,
+        }
+
+    def __repr__(self):
+        return f'<Participation User:{self.user_id} Event:{self.event_id}>'
 
 class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)

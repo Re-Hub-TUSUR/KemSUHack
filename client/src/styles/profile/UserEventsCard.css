@@ -53,6 +53,7 @@
     border-radius: var(--border-radius-md);
     background-color: #f8f9fa;
     transition: background-color 0.2s, box-shadow 0.2s;
+    cursor: pointer; 
 }
 .profile-event-item:hover {
     background-color: #f1f3f5;
@@ -90,6 +91,7 @@
     margin: 0 0 0.25rem 0;
     font-size: 1.1rem;
     font-weight: 500;
+    color: var(--text-color-primary);
 }
 
 .profile-event-datetime {
@@ -98,11 +100,22 @@
     color: var(--text-color-secondary);
 }
 
+.profile-event-role { 
+    margin: 0.25rem 0 0 0;
+    font-size: 0.8rem;
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
 .profile-event-link {
     font-size: 1.5rem;
     color: var(--text-color-muted);
     text-decoration: none;
     transition: color 0.2s, transform 0.2s;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
 }
 .profile-event-item:hover .profile-event-link {
     color: var(--primary-color);

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { User, Notification } from '../types';
 import '../styles/Header.css';
 import '../styles/NotificationDropdown.css';
-import { BellIcon, UserPlaceholderIcon, ArchiveIconHeader, CalendarIconBottomNav, EventsIconBottomNav } from './icons';
+import { BellIcon, UserPlaceholderIcon, ArchiveIconHeader, CalendarIconBottomNav, EventsIconBottomNav } from './icons'; 
 import NotificationDropdown from './NotificationDropdown';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom'; 
@@ -10,10 +10,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 interface HeaderProps {
   user: User | null;
   onLogoutClick: () => void;
-  onNavigate: (path: string) => void;
-  currentPath: string;
-  activeViewMode: 'list' | 'calendar';
-  onSwitchMainView: (view: 'list' | 'calendar') => void;
+  onNavigate: (path: string) => void; 
+  currentPath: string; 
+  activeViewMode: 'list' | 'calendar'; 
+  onSwitchMainView: (view: 'list' | 'calendar') => void; 
+  onSetRefetchNotifications: (fetchFunc: (() => Promise<void>) | null) => void; 
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -21,10 +22,11 @@ const Header: React.FC<HeaderProps> = ({
   onLogoutClick,
   onNavigate,
   currentPath,
-  activeViewMode,
-  onSwitchMainView,
+  activeViewMode, 
+  onSwitchMainView, 
+  onSetRefetchNotifications, 
 }) => {
-  const { fetchWithAuth } = useAuth();
+  const { fetchWithAuth, isAuthenticated } = useAuth(); 
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -39,29 +41,42 @@ const Header: React.FC<HeaderProps> = ({
   const bellButtonRef = useRef<HTMLButtonElement>(null);
 
   const fetchNotifications = useCallback(async () => {
-    if (!user) return;
+    if (!isAuthenticated) { 
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
+    if (!user) return; 
+
     try {
       const response = await fetchWithAuth('/api/notifications');
       if (response.ok) {
-        const data: Notification[] = await response.json();
+        const data = await response.json();
         setNotifications(data);
-        setUnreadCount(data.filter(n => !n.is_read).length);
+        setUnreadCount(data.filter((n: Notification) => !n.is_read).length); 
+      } else {
+          console.error("Failed to fetch notifications:", response.status, await response.text());
       }
     } catch (error) {
-      console.error("Ошибка при загрузках уведомлений:", error);
+      console.error("Ошибка при загрузке уведомлений:", error);
     }
-  }, [user, fetchWithAuth]);
+  }, [user, isAuthenticated, fetchWithAuth]);
 
   useEffect(() => {
     fetchNotifications();
-  }, [fetchNotifications]);
+  }, [fetchNotifications]); 
   
+  useEffect(() => {
+      onSetRefetchNotifications(fetchNotifications);
+      return () => onSetRefetchNotifications(null);
+  }, [onSetRefetchNotifications, fetchNotifications]);
+
+
   const handleMarkAsRead = async () => {
     if (unreadCount === 0) return;
     try {
       await fetchWithAuth('/api/notifications/mark-as-read', { method: 'POST' });
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      setUnreadCount(0);
+      fetchNotifications(); 
     } catch (error) {
       console.error("Ошибка при пометке уведомлений как прочитанных:", error);
     }
@@ -73,10 +88,7 @@ const Header: React.FC<HeaderProps> = ({
     if (!notification.is_read) {
         try {
             await fetchWithAuth(`/api/notifications/${notification.id}/mark-as-read`, { method: 'POST' });
-            setNotifications(prev =>
-                prev.map(n => n.id === notification.id ? { ...n, is_read: true } : n)
-            );
-            setUnreadCount(prev => Math.max(0, prev - 1));
+            fetchNotifications(); 
         } catch (error) {
             console.error("Ошибка при пометке уведомления как прочитанного:", error);
         }
@@ -118,11 +130,11 @@ const Header: React.FC<HeaderProps> = ({
           <button 
             className={`app-header-nav-link ${isMainActivePage && activeViewMode === 'list' ? 'active' : ''}`}
             onClick={() => {
-                if (isMainActivePage) {
-                    onSwitchMainView('list');
-                } else {
-                    onNavigate('/');
-                    onSwitchMainView('list');
+                if (isMainActivePage) { 
+                    onSwitchMainView('list'); 
+                } else { 
+                    onNavigate('/'); 
+                    onSwitchMainView('list'); 
                 }
             }}>
               Мероприятия
@@ -130,11 +142,11 @@ const Header: React.FC<HeaderProps> = ({
           <button 
             className={`app-header-nav-link ${isMainActivePage && activeViewMode === 'calendar' ? 'active' : ''}`} 
             onClick={() => {
-                if (isMainActivePage) {
-                    onSwitchMainView('calendar');
-                } else {
-                    onNavigate('/');
-                    onSwitchMainView('calendar');
+                if (isMainActivePage) { 
+                    onSwitchMainView('calendar'); 
+                } else { 
+                    onNavigate('/'); 
+                    onSwitchMainView('calendar'); 
                 }
             }}>
               Расписание
