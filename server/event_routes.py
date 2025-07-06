@@ -2,8 +2,8 @@ from typing import Optional
 from flask import request, jsonify
 from models import db, Event, User, EventLocation, EventType, Role, ParticipantRoleEnum, Notification
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy import or_
-from datetime import datetime, timedelta, timezone
+from sqlalchemy import or_, and_
+from datetime import datetime, timezone
 import logging
 import os
 import uuid
@@ -55,6 +55,23 @@ def register_event_routes(app, socketio):
     def get_events():
         try:
             query = Event.query
+            now_utc = datetime.now(timezone.utc)
+
+            status_param = request.args.get('status', 'active') 
+            
+            if status_param == 'active':
+                query = query.filter(
+                    Event.is_archived == False,
+                    or_(Event.end_datetime.is_(None), Event.end_datetime >= now_utc)
+                )
+            elif status_param == 'archive':
+                query = query.filter(
+                    or_(
+                        Event.is_archived == True,
+                        and_(Event.is_archived == False, Event.end_datetime < now_utc)
+                    )
+                )
+
             start_date_str = request.args.get('startDate')
             end_date_str = request.args.get('endDate')
             role_str = request.args.get('role')
@@ -65,15 +82,17 @@ def register_event_routes(app, socketio):
             if search_term:
                 search_pattern = f"%{search_term}%"
                 query = query.filter(or_(Event.title.ilike(search_pattern), Event.description.ilike(search_pattern)))
+
             if start_date_str:
                 start_date_utc = parse_datetime(start_date_str)
                 if start_date_utc:
-                    query = query.filter((Event.end_datetime >= start_date_utc) | (Event.start_datetime >= start_date_utc))
+                    query = query.filter(Event.start_datetime >= start_date_utc)
             if end_date_str:
                 end_date_utc = parse_datetime(end_date_str)
                 if end_date_utc:
-                   end_date_utc = datetime(end_date_utc.year, end_date_utc.month, end_date_utc.day, 23, 59, 59, 999999, tzinfo=timezone.utc)
-                   query = query.filter(Event.start_datetime <= end_date_utc)
+                   end_date_utc_eod = datetime(end_date_utc.year, end_date_utc.month, end_date_utc.day, 23, 59, 59, 999999, tzinfo=timezone.utc)
+                   query = query.filter(Event.start_datetime <= end_date_utc_eod)
+                   
             if role_str:
                 try:
                     role_enum = ParticipantRoleEnum(role_str)
@@ -153,7 +172,9 @@ def register_event_routes(app, socketio):
                 location_details=data.get('location_details'), event_type=EventType(data['event_type']),
                 registration_link_participant=data.get('registration_link_participant'),
                 registration_link_volunteer=data.get('registration_link_volunteer'),
-                registration_link_organizer=data.get('registration_link_organizer'), author_id=current_user_id
+                registration_link_organizer=data.get('registration_link_organizer'), author_id=current_user_id,
+                is_archived=False,
+                archived_at=None
             )
             new_event.roles = role_objects
             
@@ -242,6 +263,13 @@ def register_event_routes(app, socketio):
             if 'registration_link_volunteer' in data: event.registration_link_volunteer = data.get('registration_link_volunteer')
             if 'registration_link_organizer' in data: event.registration_link_organizer = data.get('registration_link_organizer')
             
+            if 'is_archived' in data and isinstance(data['is_archived'], bool):
+                event.is_archived = data['is_archived']
+                if event.is_archived and not event.archived_at:
+                    event.archived_at = datetime.now(timezone.utc)
+                elif not event.is_archived:
+                    event.archived_at = None
+
             db.session.commit()
             logger.info(f"Event ID {event_id} updated by user {current_user_id}")
             
@@ -268,12 +296,60 @@ def register_event_routes(app, socketio):
             db.session.delete(event)
             db.session.commit()
             _delete_image_file(image_to_delete)
-            logger.info(f"Event ID {event_id} deleted by user {current_user_id}")
-            return jsonify({"message": "Мероприятие успешно удалено"}), 200
+            logger.info(f"Event ID {event_id} HARD DELETED by user {current_user_id}")
+            return jsonify({"message": "Мероприятие успешно удалено навсегда"}), 200
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Error deleting event {event_id}: {e}", exc_info=True)
+            logger.error(f"Error hard deleting event {event_id}: {e}", exc_info=True)
             return jsonify({"error": "Ошибка при удалении мероприятия"}), 500
+
+    @app.route('/api/events/<int:event_id>/archive', methods=['POST'])
+    @jwt_required()
+    def archive_event(event_id):
+        current_user_id = get_jwt_identity()
+        user = get_user_or_404(current_user_id)
+        if not user or not user.is_admin: return jsonify({"error": "Требуются права администратора"}), 403
+        
+        event = Event.query.get(event_id)
+        if not event: return jsonify({"error": "Мероприятие не найдено"}), 404
+        
+        if event.is_archived:
+            return jsonify({"message": "Мероприятие уже в архиве"}), 200
+
+        try:
+            event.is_archived = True
+            event.archived_at = datetime.now(timezone.utc)
+            db.session.commit()
+            logger.info(f"Event ID {event_id} archived by user {current_user_id}")
+            return jsonify(event.to_dict()), 200
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error archiving event {event_id}: {e}", exc_info=True)
+            return jsonify({"error": "Ошибка при архивировании мероприятия"}), 500
+
+    @app.route('/api/events/<int:event_id>/restore', methods=['POST'])
+    @jwt_required()
+    def restore_event(event_id):
+        current_user_id = get_jwt_identity()
+        user = get_user_or_404(current_user_id)
+        if not user or not user.is_admin: return jsonify({"error": "Требуются права администратора"}), 403
+        
+        event = Event.query.get(event_id)
+        if not event: return jsonify({"error": "Мероприятие не найдено"}), 404
+        
+        if not event.is_archived and (event.end_datetime is None or event.end_datetime >= datetime.now(timezone.utc)):
+             return jsonify({"message": "Мероприятие уже активно"}), 200
+        
+        try:
+            event.is_archived = False
+            event.archived_at = None
+            db.session.commit()
+            logger.info(f"Event ID {event_id} restored by user {current_user_id}")
+            return jsonify(event.to_dict()), 200
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error restoring event {event_id}: {e}", exc_info=True)
+            return jsonify({"error": "Ошибка при восстановлении мероприятия"}), 500
 
     @app.route('/api/events/<int:event_id>/upload_image', methods=['POST'])
     @jwt_required()

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import LandingPage from './components/landing/LandingPage';
 import MainPage from './pages/MainPage';
@@ -23,6 +23,8 @@ const App = () => {
         handleSwitchAuthForm 
     } = useAuthModals();
 
+    const [mainViewMode, setMainViewMode] = useState<'list' | 'calendar'>('list');
+
     if (authLoading) {
         return <div style={{ textAlign: 'center', margin: '4rem 0', fontSize: '1.2em' }}>Загрузка...</div>;
     }
@@ -32,17 +34,17 @@ const App = () => {
             <Routes>
                 {isAuthenticated ? (
                     <>
-                        <Route path="/" element={<MainPage />} />
+                        <Route path="/" element={<MainPage status="active" activeViewMode={mainViewMode} onSwitchMainView={setMainViewMode} />} />
+                        <Route path="/archive" element={<MainPage status="archive" activeViewMode="list" onSwitchMainView={() => {}} />} />
                         <Route path="/profile" element={<ProfilePage />} />
-                        {/* Можно добавить маршрут для страницы настроек */}
-                        {/* <Route path="/settings" element={<SettingsPage />} /> */}
+                        <Route path="/events/:eventId" element={<MainPage status="active" activeViewMode="list" onSwitchMainView={setMainViewMode} />} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
                     </>
                 ) : (
                     <Route path="*" element={<LandingPage onLoginClick={openLoginModal} onRegisterClick={openRegisterModal} />} />
                 )}
             </Routes>
-
-            {/* Модальные окна аутентификации остаются здесь, так как они глобальные */}
+            
             <AuthModal 
                 isOpen={isRegisterOpen} 
                 variant="register" 

@@ -113,6 +113,8 @@ class Event(db.Model):
     updated_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     notification_sent_at = db.Column(db.DateTime, nullable=True)
+    is_archived = db.Column(db.Boolean, default=False, nullable=False, server_default=db.text('0'))
+    archived_at = db.Column(db.DateTime, nullable=True)
 
     def to_dict(self):
         return {
@@ -132,7 +134,9 @@ class Event(db.Model):
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
             'author_id': self.author_id,
-            'author_username': self.author.username if self.author else None
+            'author_username': self.author.username if self.author else None,
+            'is_archived': self.is_archived,
+            'archived_at': self.archived_at.isoformat() if self.archived_at else None
         }
 
     def __repr__(self):

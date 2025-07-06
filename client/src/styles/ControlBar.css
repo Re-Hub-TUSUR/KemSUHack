@@ -1,15 +1,17 @@
 .control-bar {
-    padding-top: 20px;
     padding: 1rem 1.5rem;
     margin-bottom: 1.5rem;
     display: flex;
     flex-wrap: wrap;
+    justify-content: space-between;
     gap: 1rem;
     align-items: center;
 }
 
 .search-input-wrapper {
     flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: auto;
     min-width: 250px;
     position: relative;
 }
@@ -53,6 +55,7 @@
     display: flex;
     gap: 0.75rem;
     flex-shrink: 0;
+    flex-grow: 0;
     align-items: center;
 }
 
@@ -61,6 +64,7 @@
     align-items: center;
     gap: 0.4rem;
     padding: 8px 15px;
+    white-space: nowrap;
 }
 
 .filter-btn .filter-indicator {
@@ -82,37 +86,54 @@
 }
 
 @media (max-width: 992px) {
-     .control-buttons {
-         flex-wrap: wrap;
-         justify-content: flex-end;
-     }
+    .control-bar {
+        justify-content: flex-start;
+    }
+    .search-input-wrapper,
+    .control-buttons {
+        flex-basis: 100%;
+    }
+    .search-input-wrapper {
+        margin-bottom: 1rem;
+    }
+    .control-buttons {
+        justify-content: center;
+        gap: 1rem;
+    }
 }
 
 @media (max-width: 768px) {
     .control-bar {
         flex-direction: column;
         align-items: stretch;
+        gap: 0.75rem;
+        padding: 15px;
     }
     .search-input-wrapper {
-        min-width: 100%;
+        min-width: unset;
+        width: 100%;
+        margin-bottom: 0;
     }
     .control-buttons {
+        flex-direction: row;
         justify-content: space-between;
         width: 100%;
-        order: 0;
+        gap: 0.5rem;
     }
     .filter-btn, .add-btn {
         flex-grow: 1;
         justify-content: center;
+        padding: 10px 12px;
+        font-size: 0.9rem;
     }
 }
 
 @media (max-width: 480px) {
-     .control-buttons {
+    .control-buttons {
         flex-direction: column;
-        gap: 0.5rem;
-     }
-     .filter-btn, .add-btn {
+        align-items: stretch;
+    }
+    .filter-btn, .add-btn {
         width: 100%;
-     }
+    }
 }

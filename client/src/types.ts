@@ -56,6 +56,8 @@ export interface Event {
   updated_at: string;
   author_id: number;
   author_username?: string;
+  is_archived: boolean;
+  archived_at?: string | null;
 }
 
 export interface EventFilters {

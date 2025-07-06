@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Event, EventFilters } from '../types';
 import { toast } from 'react-toastify';
 
-export const useEvents = (filters: EventFilters, debouncedSearchTerm: string) => {
+export const useEvents = (filters: EventFilters, debouncedSearchTerm: string, status: 'active' | 'archive') => {
     const { isAuthenticated, fetchWithAuth } = useAuth();
     const [events, setEvents] = useState<Event[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -17,6 +17,7 @@ export const useEvents = (filters: EventFilters, debouncedSearchTerm: string) =>
         const queryParams = new URLSearchParams();
         Object.entries(filters).forEach(([key, value]) => value && queryParams.append(key, value as string));
         if (debouncedSearchTerm) queryParams.append('search', debouncedSearchTerm);
+        queryParams.append('status', status);
 
         try {
             const response = await fetchWithAuth(`/api/events?${queryParams.toString()}`);
@@ -32,7 +33,7 @@ export const useEvents = (filters: EventFilters, debouncedSearchTerm: string) =>
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated, fetchWithAuth, filters, debouncedSearchTerm]);
+    }, [isAuthenticated, fetchWithAuth, filters, debouncedSearchTerm, status]);
 
     useEffect(() => {
         fetchEvents();

@@ -8,6 +8,7 @@ interface ControlBarProps {
     onAddClick: () => void;
     isAdmin: boolean;
     isFiltered: boolean;
+    isArchiveMode: boolean; 
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({
@@ -17,6 +18,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
     onAddClick,
     isAdmin,
     isFiltered,
+    isArchiveMode,
 }) => {
     return (
         <div className="control-bar card">
@@ -39,11 +41,12 @@ const ControlBar: React.FC<ControlBarProps> = ({
                  )}
             </div>
             <div className="control-buttons">
+                
                 <button onClick={onFilterClick} className={`secondary-btn filter-btn ${isFiltered ? 'filter-active' : ''}`}>
                     <FilterIcon />
                     Фильтры {isFiltered && <span className="filter-indicator" title="Фильтры применены">•</span>}
                 </button>
-                {isAdmin && (
+                {isAdmin && !isArchiveMode && (
                     <button onClick={onAddClick} className="primary-btn add-btn">
                          <AddIcon />
                         Добавить

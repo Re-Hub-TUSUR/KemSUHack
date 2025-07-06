@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { Event, EventFormData } from '../types';
 import { toast } from 'react-toastify';
 
+type ConfirmActionType = 'archive' | 'delete' | 'restore';
+
 export const useEventActions = (refetchEvents: () => void) => {
     const { fetchWithAuth } = useAuth();
 
@@ -12,9 +14,10 @@ export const useEventActions = (refetchEvents: () => void) => {
     const [eventToEdit, setEventToEdit] = useState<Event | null>(null);
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     
-    const [eventToDeleteId, setEventToDeleteId] = useState<number | null>(null);
+    const [eventToConfirmId, setEventToConfirmId] = useState<number | null>(null);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [confirmActionType, setConfirmActionType] = useState<ConfirmActionType | null>(null);
 
     const handleViewDetails = useCallback((event: Event | null) => {
         setSelectedEvent(event);
@@ -41,33 +44,67 @@ export const useEventActions = (refetchEvents: () => void) => {
         setEventToEdit(null);
     };
 
-    const handleDeleteEvent = (eventId: number) => {
-        setEventToDeleteId(eventId);
+    const handleInitiateArchive = (eventId: number) => {
+        setEventToConfirmId(eventId);
+        setConfirmActionType('archive');
+        setIsConfirmModalOpen(true);
+    };
+
+    const handleInitiateRestore = (eventId: number) => {
+        setEventToConfirmId(eventId);
+        setConfirmActionType('restore');
+        setIsConfirmModalOpen(true);
+    };
+
+    const handleInitiateHardDelete = (eventId: number) => {
+        setEventToConfirmId(eventId);
+        setConfirmActionType('delete');
         setIsConfirmModalOpen(true);
     };
 
     const handleCloseConfirmModal = () => {
         setIsConfirmModalOpen(false);
-        setEventToDeleteId(null);
+        setEventToConfirmId(null);
+        setConfirmActionType(null);
     };
 
-    const confirmDeleteAction = async () => {
-        if (eventToDeleteId === null) return;
-        setIsDeleting(true);
+    const confirmAction = async () => {
+        if (eventToConfirmId === null || confirmActionType === null) return;
+        
+        setIsDeleting(true); 
         try {
-            await fetchWithAuth(`/api/events/${eventToDeleteId}`, { method: 'DELETE' });
-            toast.success("Мероприятие успешно удалено!");
+            let successMessage = '';
+            let endpoint = '';
+            let method = 'POST'; 
+            
+            if (confirmActionType === 'archive') {
+                endpoint = `/api/events/${eventToConfirmId}/archive`;
+                successMessage = "Мероприятие успешно архивировано!";
+            } else if (confirmActionType === 'restore') {
+                endpoint = `/api/events/${eventToConfirmId}/restore`;
+                successMessage = "Мероприятие успешно восстановлено!";
+            } else if (confirmActionType === 'delete') {
+                endpoint = `/api/events/${eventToConfirmId}`;
+                method = 'DELETE'; 
+                successMessage = "Мероприятие успешно удалено навсегда!";
+            }
+
+            await fetchWithAuth(endpoint, { method: method });
+            toast.success(successMessage);
             refetchEvents();
-            if (selectedEvent?.id === eventToDeleteId) handleCloseDetailModal();
+            if (selectedEvent?.id === eventToConfirmId) handleCloseDetailModal();
         } catch (err) {
             if (!(err instanceof Error && err.message.includes('401'))) {
-                toast.error(err instanceof Error ? err.message : 'Ошибка удаления');
+                toast.error(err instanceof Error ? err.message : `Ошибка ${confirmActionType === 'archive' ? 'архивирования' : confirmActionType === 'restore' ? 'восстановления' : 'удаления'}`);
             }
         } finally {
             setIsDeleting(false);
             handleCloseConfirmModal();
         }
     };
+
+    const confirmArchiveAction = confirmAction; 
+    const confirmDeleteAction = confirmAction; 
 
     const handleSaveEvent = async (formData: EventFormData, imageFile: File | null) => {
         const isEditing = !!eventToEdit;
@@ -126,9 +163,13 @@ export const useEventActions = (refetchEvents: () => void) => {
         handleOpenAddForm,
         handleOpenEditForm,
         handleCloseFormModal,
-        handleDeleteEvent,
+        handleInitiateArchive, 
+        handleInitiateHardDelete, 
+        handleInitiateRestore, 
         handleCloseConfirmModal,
-        confirmDeleteAction,
+        confirmArchiveAction, 
+        confirmDeleteAction, 
+        confirmActionType, 
         handleSaveEvent,
         handleImageDelete,
     };

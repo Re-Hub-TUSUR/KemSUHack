@@ -1,5 +1,5 @@
 import logging
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, send_from_directory
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager

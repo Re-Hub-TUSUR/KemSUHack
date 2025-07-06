@@ -9,7 +9,7 @@ import NotificationsCard from '../components/profile/NotificationsCard';
 import Header from '../components/Header';
 import BottomNavigationBar from '../components/BottomNavigationBar';
 import MoreMenuModal from '../components/MoreMenuModal';
-import { EventsIconBottomNav, CalendarIconBottomNav } from '../components/icons';
+import { EventsIconBottomNav, CalendarIconBottomNav, ArchiveIconBottomNav } from '../components/icons'; 
 import '../styles/profile/ProfilePage.css';
 import { Event } from '../types';
 
@@ -61,8 +61,8 @@ const ProfilePage = () => {
         }
     };
 
-    const handleNavigate = (view: 'list' | 'calendar') => {
-        navigate('/', { state: { view: view } });
+    const handleNavigate = (path: string) => {
+        navigate(path);
     };
 
     if (!currentUser) {
@@ -77,7 +77,9 @@ const ProfilePage = () => {
                 user={currentUser} 
                 onLogoutClick={logout} 
                 onNavigate={handleNavigate} 
-                viewMode={null}
+                currentPath="/profile" 
+                activeViewMode={'list'}
+                onSwitchMainView={() => {}}
             />
             
             <main className={`profile-page-main ${ (typeof window !== 'undefined' && window.innerWidth <= 768) ? 'has-bottom-nav' : ''}`}>
@@ -91,13 +93,13 @@ const ProfilePage = () => {
                             onAvatarChange={handleAvatarChange}
                             onProfileUpdate={handleProfileUpdate}
                             stats={{
-                                events_visited: 0,
+                                events_visited: 0, 
                                 main_role: mainRole
                             }}
                         />
                         <UserEventsCard
-                            upcomingEvents={mockUpcomingEvents}
-                            pastEvents={mockPastEvents}
+                            upcomingEvents={mockUpcomingEvents} 
+                            pastEvents={mockPastEvents} 
                         />
                     </div>
                     <div className="profile-grid-sidebar">
@@ -111,11 +113,14 @@ const ProfilePage = () => {
             </main>
             
             <BottomNavigationBar 
-                activeView={null}
+                activeViewMode={'list'}
+                currentPath="/profile" 
                 onMoreClick={() => setIsMoreMenuOpen(true)} 
                 EventsIconComp={EventsIconBottomNav} 
                 CalendarIconComp={CalendarIconBottomNav} 
+                ArchiveIconComp={ArchiveIconBottomNav} 
                 onNavigate={handleNavigate} 
+                onSwitchMainView={() => {}}
             />
              <MoreMenuModal 
                 isOpen={isMoreMenuOpen} 

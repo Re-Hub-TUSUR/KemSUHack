@@ -2,26 +2,31 @@ import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { User, Notification } from '../types';
 import '../styles/Header.css';
 import '../styles/NotificationDropdown.css';
-import { BellIcon, UserPlaceholderIcon } from './icons';
+import { BellIcon, UserPlaceholderIcon, ArchiveIconHeader, CalendarIconBottomNav, EventsIconBottomNav } from './icons';
 import NotificationDropdown from './NotificationDropdown';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom'; 
 
 interface HeaderProps {
   user: User | null;
   onLogoutClick: () => void;
-  onNavigate: (mode: 'list' | 'calendar') => void;
-  viewMode: 'list' | 'calendar' | null;
+  onNavigate: (path: string) => void;
+  currentPath: string;
+  activeViewMode: 'list' | 'calendar';
+  onSwitchMainView: (view: 'list' | 'calendar') => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
   user,
   onLogoutClick,
   onNavigate,
-  viewMode,
+  currentPath,
+  activeViewMode,
+  onSwitchMainView,
 }) => {
   const { fetchWithAuth } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const userDropdownRef = useRef<HTMLDivElement>(null);
@@ -43,7 +48,7 @@ const Header: React.FC<HeaderProps> = ({
         setUnreadCount(data.filter(n => !n.is_read).length);
       }
     } catch (error) {
-      console.error("Ошибка при загрузке уведомлений:", error);
+      console.error("Ошибка при загрузках уведомлений:", error);
     }
   }, [user, fetchWithAuth]);
 
@@ -78,7 +83,8 @@ const Header: React.FC<HeaderProps> = ({
     }
 
     if (notification.event_id) {
-      navigate('/', { state: { openEventId: notification.event_id } });
+      onSwitchMainView('list'); 
+      navigate(`/events/${notification.event_id}`, { state: { openEventId: notification.event_id } }); 
     }
   };
 
@@ -96,6 +102,8 @@ const Header: React.FC<HeaderProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isUserDropdownOpen, isNotificationOpen]);
 
+  const isMainActivePage = currentPath === '/' || currentPath.startsWith('/events/');
+  const isArchivePage = currentPath === '/archive';
 
   return (
     <header className="app-header">
@@ -108,14 +116,33 @@ const Header: React.FC<HeaderProps> = ({
       <div className="app-header-center">
         <nav className="app-header-nav">
           <button 
-            className={`app-header-nav-link ${viewMode === 'list' ? 'active' : ''}`}
-            onClick={() => onNavigate('list')}>
+            className={`app-header-nav-link ${isMainActivePage && activeViewMode === 'list' ? 'active' : ''}`}
+            onClick={() => {
+                if (isMainActivePage) {
+                    onSwitchMainView('list');
+                } else {
+                    onNavigate('/');
+                    onSwitchMainView('list');
+                }
+            }}>
               Мероприятия
           </button>
           <button 
-            className={`app-header-nav-link ${viewMode === 'calendar' ? 'active' : ''}`}
-            onClick={() => onNavigate('calendar')}>
+            className={`app-header-nav-link ${isMainActivePage && activeViewMode === 'calendar' ? 'active' : ''}`} 
+            onClick={() => {
+                if (isMainActivePage) {
+                    onSwitchMainView('calendar');
+                } else {
+                    onNavigate('/');
+                    onSwitchMainView('calendar');
+                }
+            }}>
               Расписание
+          </button>
+          <button 
+            className={`app-header-nav-link ${isArchivePage ? 'active' : ''}`} 
+            onClick={() => onNavigate('/archive')}>
+              Архив
           </button>
         </nav>
       </div>

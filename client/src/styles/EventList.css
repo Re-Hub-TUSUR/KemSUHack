@@ -43,7 +43,6 @@
   font-weight: 500;
 }
 
-/* --- ИЗМЕНЕНИЯ ЗДЕСЬ --- */
 .event-grid {
   display: flex;
   flex-wrap: wrap;
@@ -60,9 +59,8 @@
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--border-color);
-  width: 320px; /* Задаем базовую ширину для flex-элементов */
+  width: 320px;
 }
-/* --- КОНЕЦ ИЗМЕНЕНИЙ --- */
 
 .event-card:hover {
   transform: translateY(-5px);
@@ -213,6 +211,10 @@
 
 .admin-action-btn.delete-btn:hover {
   color: var(--danger-color);
+}
+
+.admin-action-btn.restore-btn:hover {
+  color: var(--success-color);
 }
 
 @media (max-width: 768px) {

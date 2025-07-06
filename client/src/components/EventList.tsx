@@ -1,7 +1,7 @@
 import React from 'react';
 import { Event } from '../types';
 import { formatSingleDateTime } from '../utils/dateUtils';
-import { CalendarIcon, LocationIcon, PencilIcon, TrashIcon } from './icons';
+import { CalendarIcon, LocationIcon, PencilIcon, TrashIcon, RestoreIcon } from './icons';
 
 interface EventListProps {
     events: Event[];
@@ -11,6 +11,9 @@ interface EventListProps {
     onViewDetails: (event: Event) => void;
     onEdit?: (event: Event) => void;
     onDelete?: (eventId: number) => void;
+    onRestore?: (eventId: number) => void;
+    onHardDelete?: (eventId: number) => void;
+    isArchiveMode: boolean;
 }
 
 const EventList: React.FC<EventListProps> = ({
@@ -20,7 +23,10 @@ const EventList: React.FC<EventListProps> = ({
     isAdmin,
     onViewDetails,
     onEdit,
-    onDelete
+    onDelete,
+    onRestore, 
+    onHardDelete, 
+    isArchiveMode, 
 }) => {
 
     const renderContent = () => {
@@ -60,10 +66,19 @@ const EventList: React.FC<EventListProps> = ({
                             <footer className="event-card-footer">
                                 <div className="event-card-actions-wrapper">
                                     <button onClick={() => onViewDetails(event)} className="secondary-btn">Подробнее</button>
-                                    {isAdmin && onEdit && onDelete && (
+                                    {isAdmin && (
                                         <div className="admin-actions">
-                                            <button onClick={() => onEdit(event)} className="admin-action-btn edit-btn" title="Редактировать" aria-label="Редактировать мероприятие"><PencilIcon /></button>
-                                            <button onClick={() => onDelete(event.id)} className="admin-action-btn delete-btn" title="Удалить" aria-label="Удалить мероприятие"><TrashIcon /></button>
+                                            {onEdit && (
+                                                <button onClick={() => onEdit(event)} className="admin-action-btn edit-btn" title="Редактировать" aria-label="Редактировать мероприятие"><PencilIcon /></button>
+                                            )}
+                                            {isArchiveMode ? (
+                                                <>
+                                                    {onRestore && <button onClick={() => onRestore(event.id)} className="admin-action-btn restore-btn" title="Восстановить" aria-label="Восстановить мероприятие"><RestoreIcon /></button>}
+                                                    {onHardDelete && <button onClick={() => onHardDelete(event.id)} className="admin-action-btn delete-btn" title="Удалить навсегда" aria-label="Удалить мероприятие навсегда"><TrashIcon /></button>}
+                                                </>
+                                            ) : (
+                                                onDelete && <button onClick={() => onDelete(event.id)} className="admin-action-btn delete-btn" title="Отправить в архив" aria-label="Отправить мероприятие в архив"><TrashIcon /></button>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -78,7 +93,7 @@ const EventList: React.FC<EventListProps> = ({
     return (
          <div className="card event-list-card">
             <div className="event-list-header">
-                <h2>Список мероприятий</h2>
+                <h2>{isArchiveMode ? 'Архив мероприятий' : 'Список мероприятий'}</h2> 
                  {isLoading && <span className="event-list-loader-text">Обновление...</span>}
             </div>
             {renderContent()}
