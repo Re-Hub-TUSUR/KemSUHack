@@ -26,7 +26,7 @@ const EventItem: React.FC<{event: Participation}> = ({ event }) => {
             <div className="profile-event-info">
                 <h4 className="profile-event-title">{event.event_title}</h4>
                 <p className="profile-event-datetime">{formatSingleDateTime(event.event_start_datetime)}</p>
-                <p className="profile-event-role">{event.role_name}</p> {/* Display role */}
+                <p className="profile-event-role">{event.role_name}</p>
             </div>
             <button className="profile-event-link" aria-label="Подробнее о мероприятии">→</button>
         </div>

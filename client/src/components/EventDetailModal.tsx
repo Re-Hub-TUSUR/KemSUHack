@@ -60,7 +60,6 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({ isOpen, onClose, ev
 
                 <h2>{event.title}</h2>
 
-                {/* NEW: Participation button at the top of details for non-admins on active events */}
                 {isAuthenticated && !currentUser?.is_admin && !event.is_archived && (
                     <div className="detail-action-bar">
                         <button 

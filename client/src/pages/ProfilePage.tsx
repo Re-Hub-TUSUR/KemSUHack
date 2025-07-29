@@ -9,25 +9,23 @@ import NotificationsCard from '../components/profile/NotificationsCard';
 import Header from '../components/Header';
 import BottomNavigationBar from '../components/BottomNavigationBar';
 import MoreMenuModal from '../components/MoreMenuModal';
-import { EventsIconBottomNav, CalendarIconBottomNav, ArchiveIconBottomNav } from '../components/icons'; 
+import { EventsIconBottomNav, CalendarIconBottomNav, ArchiveIconBottomNav } from '../components/icons';
 import '../styles/profile/ProfilePage.css';
-import { Event, Participation } from '../types'; 
-import { useParticipation } from '../hooks/useParticipation'; 
+import { useParticipation } from '../hooks/useParticipation';
 
 const ProfilePage = () => {
     const { currentUser, logout, updateUser, changePassword, updateUserSettings } = useAuth();
     const navigate = useNavigate();
-    const location = useLocation(); 
+    const location = useLocation();
 
     const [isMoreMenuOpen, setIsMoreMenuOpen] = React.useState(false);
 
-    const { 
-        participations, 
-        isLoadingParticipations, 
-        fetchUserParticipations, 
+    const {
+        participations,
+        isLoadingParticipations,
+        fetchUserParticipations,
         fetchParticipationCounts,
         eventsVisitedCount,
-        totalParticipatedCount,
     } = useParticipation();
 
     const now = new Date();
@@ -35,7 +33,7 @@ const ProfilePage = () => {
     const pastParticipations = participations.filter(p => new Date(p.event_start_datetime) < now);
 
     useEffect(() => {
-        fetchUserParticipations('all'); 
+        fetchUserParticipations('all');
         fetchParticipationCounts();
     }, [fetchUserParticipations, fetchParticipationCounts]);
 
@@ -82,6 +80,11 @@ const ProfilePage = () => {
     const handleNavigate = (path: string) => {
         navigate(path);
     };
+    
+    const dummySwitchMainView = (view: 'list' | 'calendar') => {
+        handleNavigate(view === 'list' ? '/' : '/calendar');
+    };
+
 
     if (!currentUser) {
         return <div>Загрузка...</div>;
@@ -91,16 +94,16 @@ const ProfilePage = () => {
 
     return (
         <div className="profile-page-container">
-            <Header 
-                user={currentUser} 
-                onLogoutClick={logout} 
-                onNavigate={handleNavigate} 
-                currentPath={location.pathname} 
-                activeViewMode={'list'} 
-                onSwitchMainView={() => {}} 
+            <Header
+                user={currentUser}
+                onLogoutClick={logout}
+                onNavigate={handleNavigate}
+                currentPath={location.pathname}
+                activeViewMode={'list'}
+                onSwitchMainView={dummySwitchMainView}
                 onSetRefetchNotifications={() => {}}
             />
-            
+
             <main className={`profile-page-main ${ (typeof window !== 'undefined' && window.innerWidth <= 768) ? 'has-bottom-nav' : ''}`}>
                 <div className="profile-page-header">
                     <h1>Личный кабинет</h1>
@@ -112,41 +115,41 @@ const ProfilePage = () => {
                             onAvatarChange={handleAvatarChange}
                             onProfileUpdate={handleProfileUpdate}
                             stats={{
-                                events_visited: eventsVisitedCount, 
+                                events_visited: eventsVisitedCount,
                                 main_role: mainRole
                             }}
                         />
                         <UserEventsCard
-                            upcomingEvents={upcomingParticipations} 
-                            pastEvents={pastParticipations} 
-                            isLoading={isLoadingParticipations} 
+                            upcomingEvents={upcomingParticipations}
+                            pastEvents={pastParticipations}
+                            isLoading={isLoadingParticipations}
                         />
                     </div>
                     <div className="profile-grid-sidebar">
                         <SecurityCard onSubmit={handleChangePassword} />
-                        <NotificationsCard 
+                        <NotificationsCard
                             currentUser={currentUser}
                             onToggleNotifications={handleToggleNotifications}
                         />
                     </div>
                 </div>
             </main>
-            
-            <BottomNavigationBar 
-                activeViewMode={'list'} 
-                currentPath={location.pathname} 
-                onMoreClick={() => setIsMoreMenuOpen(true)} 
-                EventsIconComp={EventsIconBottomNav} 
-                CalendarIconComp={CalendarIconBottomNav} 
-                ArchiveIconComp={ArchiveIconBottomNav} 
-                onNavigate={handleNavigate} 
-                onSwitchMainView={() => {}} 
+
+            <BottomNavigationBar
+                activeViewMode={'list'}
+                currentPath={location.pathname}
+                onMoreClick={() => setIsMoreMenuOpen(true)}
+                EventsIconComp={EventsIconBottomNav}
+                CalendarIconComp={CalendarIconBottomNav}
+                ArchiveIconComp={ArchiveIconBottomNav}
+                onNavigate={handleNavigate}
+                onSwitchMainView={dummySwitchMainView}
             />
-             <MoreMenuModal 
-                isOpen={isMoreMenuOpen} 
-                onClose={() => setIsMoreMenuOpen(false)} 
+             <MoreMenuModal
+                isOpen={isMoreMenuOpen}
+                onClose={() => setIsMoreMenuOpen(false)}
                 onLogoutClick={logout}
-                onProfileClick={() => navigate('/profile')}
+                onProfileClick={() => handleNavigate('/profile')}
             />
 
             <ToastContainer position="bottom-right" autoClose={4000} theme="colored" />

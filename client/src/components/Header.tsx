@@ -1,20 +1,19 @@
-import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
+import React, { useEffect, useRef, memo, useCallback, useState } from 'react';
 import { User, Notification } from '../types';
 import '../styles/Header.css';
 import '../styles/NotificationDropdown.css';
-import { BellIcon, UserPlaceholderIcon, ArchiveIconHeader, CalendarIconBottomNav, EventsIconBottomNav } from './icons'; 
+import { BellIcon, UserPlaceholderIcon } from './icons';
 import NotificationDropdown from './NotificationDropdown';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom'; 
 
 interface HeaderProps {
   user: User | null;
   onLogoutClick: () => void;
-  onNavigate: (path: string) => void; 
-  currentPath: string; 
-  activeViewMode: 'list' | 'calendar'; 
-  onSwitchMainView: (view: 'list' | 'calendar') => void; 
-  onSetRefetchNotifications: (fetchFunc: (() => Promise<void>) | null) => void; 
+  onNavigate: (path: string) => void;
+  currentPath: string;
+  activeViewMode: 'list' | 'calendar';
+  onSwitchMainView: (view: 'list' | 'calendar') => void;
+  onSetRefetchNotifications: (fetchFunc: (() => Promise<void>) | null) => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -22,13 +21,11 @@ const Header: React.FC<HeaderProps> = ({
   onLogoutClick,
   onNavigate,
   currentPath,
-  activeViewMode, 
-  onSwitchMainView, 
-  onSetRefetchNotifications, 
+  activeViewMode,
+  onSwitchMainView,
+  onSetRefetchNotifications,
 }) => {
-  const { fetchWithAuth, isAuthenticated } = useAuth(); 
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { fetchWithAuth, isAuthenticated } = useAuth();
 
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const userDropdownRef = useRef<HTMLDivElement>(null);
@@ -41,19 +38,19 @@ const Header: React.FC<HeaderProps> = ({
   const bellButtonRef = useRef<HTMLButtonElement>(null);
 
   const fetchNotifications = useCallback(async () => {
-    if (!isAuthenticated) { 
+    if (!isAuthenticated) {
       setNotifications([]);
       setUnreadCount(0);
       return;
     }
-    if (!user) return; 
+    if (!user) return;
 
     try {
       const response = await fetchWithAuth('/api/notifications');
       if (response.ok) {
         const data = await response.json();
         setNotifications(data);
-        setUnreadCount(data.filter((n: Notification) => !n.is_read).length); 
+        setUnreadCount(data.filter((n: Notification) => !n.is_read).length);
       } else {
           console.error("Failed to fetch notifications:", response.status, await response.text());
       }
@@ -64,8 +61,8 @@ const Header: React.FC<HeaderProps> = ({
 
   useEffect(() => {
     fetchNotifications();
-  }, [fetchNotifications]); 
-  
+  }, [fetchNotifications]);
+
   useEffect(() => {
       onSetRefetchNotifications(fetchNotifications);
       return () => onSetRefetchNotifications(null);
@@ -76,7 +73,7 @@ const Header: React.FC<HeaderProps> = ({
     if (unreadCount === 0) return;
     try {
       await fetchWithAuth('/api/notifications/mark-as-read', { method: 'POST' });
-      fetchNotifications(); 
+      fetchNotifications();
     } catch (error) {
       console.error("Ошибка при пометке уведомлений как прочитанных:", error);
     }
@@ -88,19 +85,18 @@ const Header: React.FC<HeaderProps> = ({
     if (!notification.is_read) {
         try {
             await fetchWithAuth(`/api/notifications/${notification.id}/mark-as-read`, { method: 'POST' });
-            fetchNotifications(); 
+            fetchNotifications();
         } catch (error) {
             console.error("Ошибка при пометке уведомления как прочитанного:", error);
         }
     }
 
     if (notification.event_id) {
-      onSwitchMainView('list'); 
-      navigate(`/events/${notification.event_id}`, { state: { openEventId: notification.event_id } }); 
+      onNavigate(`/events/${notification.event_id}`);
     }
   };
 
-  const userAvatar = user?.avatarUrl || null; 
+  const userAvatar = user?.avatarUrl || null;
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (isUserDropdownOpen && userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node) && avatarButtonRef.current && !avatarButtonRef.current.contains(event.target as Node)) {
@@ -114,7 +110,7 @@ const Header: React.FC<HeaderProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isUserDropdownOpen, isNotificationOpen]);
 
-  const isMainActivePage = currentPath === '/' || currentPath.startsWith('/events/');
+  const isMainActivePage = currentPath === '/' || currentPath.startsWith('/events/') || currentPath === '/calendar';
   const isArchivePage = currentPath === '/archive';
 
   return (
@@ -127,32 +123,18 @@ const Header: React.FC<HeaderProps> = ({
 
       <div className="app-header-center">
         <nav className="app-header-nav">
-          <button 
+          <button
             className={`app-header-nav-link ${isMainActivePage && activeViewMode === 'list' ? 'active' : ''}`}
-            onClick={() => {
-                if (isMainActivePage) { 
-                    onSwitchMainView('list'); 
-                } else { 
-                    onNavigate('/'); 
-                    onSwitchMainView('list'); 
-                }
-            }}>
+            onClick={() => onSwitchMainView('list')}>
               Мероприятия
           </button>
-          <button 
-            className={`app-header-nav-link ${isMainActivePage && activeViewMode === 'calendar' ? 'active' : ''}`} 
-            onClick={() => {
-                if (isMainActivePage) { 
-                    onSwitchMainView('calendar'); 
-                } else { 
-                    onNavigate('/'); 
-                    onSwitchMainView('calendar'); 
-                }
-            }}>
+          <button
+            className={`app-header-nav-link ${isMainActivePage && activeViewMode === 'calendar' ? 'active' : ''}`}
+            onClick={() => onSwitchMainView('calendar')}>
               Расписание
           </button>
-          <button 
-            className={`app-header-nav-link ${isArchivePage ? 'active' : ''}`} 
+          <button
+            className={`app-header-nav-link ${isArchivePage ? 'active' : ''}`}
             onClick={() => onNavigate('/archive')}>
               Архив
           </button>
@@ -183,11 +165,11 @@ const Header: React.FC<HeaderProps> = ({
             />
           </div>
         </div>
-        
+
         <div className="app-header-user-menu" ref={userDropdownRef}>
-          <button 
+          <button
             ref={avatarButtonRef}
-            className="app-header-user-avatar-button" 
+            className="app-header-user-avatar-button"
             aria-label="Личный кабинет"
             onClick={() => setIsUserDropdownOpen(prev => !prev)}
             aria-expanded={isUserDropdownOpen}
@@ -198,14 +180,14 @@ const Header: React.FC<HeaderProps> = ({
               <UserPlaceholderIcon />
             )}
           </button>
-          <div className={`app-header-dropdown ${isUserDropdownOpen ? 'open' : ''}`}> 
+          <div className={`app-header-dropdown ${isUserDropdownOpen ? 'open' : ''}`}>
             {user && <div className="dropdown-user-info">Привет, {user.username}!</div>}
-            <a href="/profile" className="dropdown-link" onClick={() => { setIsUserDropdownOpen(false); navigate('/profile'); }}>Профиль</a>
-            <button 
+            <a href="/profile" className="dropdown-link" onClick={() => { setIsUserDropdownOpen(false); onNavigate('/profile'); }}>Профиль</a>
+            <button
               onClick={() => {
                 onLogoutClick();
                 setIsUserDropdownOpen(false);
-              }} 
+              }}
               className="dropdown-link dropdown-logout-btn">
                 Выход
             </button>

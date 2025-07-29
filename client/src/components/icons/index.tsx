@@ -1,13 +1,9 @@
-// START OF FILE icons.tsx
 import React from 'react';
 
 interface IconProps {
     size?: number;
-    className?: string; // Для применения специфичных CSS-классов
+    className?: string;
 }
-
-// Замечание: Проп `color` больше не нужен напрямую в `IconProps`, так как SVG теперь используют `fill="currentColor"` или `stroke="currentColor"`.
-// Цвет будет наследоваться от CSS-свойства `color` родительского элемента.
 
 export const UserIcon: React.FC<IconProps> = ({ size, className = '' }) => (
   <svg className={`auth-icon ${className}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={size} height={size}>
@@ -55,7 +51,6 @@ export const MoreIcon: React.FC<IconProps> = ({ size = 24, className = '' }) => 
   <svg className={`bottom-nav-icon-svg ${className}`} viewBox="0 0 24 24" width={size} height={size}><path fill="currentColor" d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
 );
 
-// Updated: CalendarIcon used in components like EventDetailModal
 export const CalendarIcon: React.FC<IconProps> = ({ size = 20, className = '' }) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width={size} height={size} className={className}>
         <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
@@ -129,7 +124,6 @@ export const SettingsIcon: React.FC<IconProps> = ({ size = 24, className = '' })
     <svg className={`more-menu-icon-svg ${className}`} viewBox="0 0 24 24" width={size} height={size}><path fill="currentColor" d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.08.49 0 .61.22l2 3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
 );
 
-// Updated: These are for bottom nav but now used in Header too
 export const EventsIconBottomNav: React.FC<IconProps> = ({ size = 24, className = '' }) => (
   <svg className={`bottom-nav-icon-svg ${className}`} viewBox="0 0 24 24" width={size} height={size}><path fill="currentColor" d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11zM5 8V6h14v2H5z"/></svg>
 );
@@ -138,7 +132,6 @@ export const CalendarIconBottomNav: React.FC<IconProps> = ({ size = 24, classNam
     <svg className={`bottom-nav-icon-svg ${className}`} viewBox="0 0 24 24" width={size} height={size}><path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5z"/></svg>
 );
 
-// NEW ICONS
 export const ArchiveIconHeader: React.FC<IconProps> = ({ size = 20, className = '' }) => (
   <svg
     width={size}

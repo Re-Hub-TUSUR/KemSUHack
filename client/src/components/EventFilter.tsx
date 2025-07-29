@@ -56,7 +56,6 @@ const EventFilterModal: React.FC<EventFilterModalProps> = ({
                 </button>
                 <h2>Фильтры мероприятий</h2>
 
-                {/* Reuse the filter grid structure */}
                 <div className="filter-grid modal-filter-grid">
                     <div className="form-group">
                         <label htmlFor="modal_startDate">Дата начала</label>

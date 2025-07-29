@@ -1,6 +1,6 @@
 import React, { JSX, memo } from 'react';
 import '../styles/BottomNavigationBar.css';
-import { MoreIcon, ArchiveIconBottomNav, EventsIconBottomNav, CalendarIconBottomNav } from './icons'; 
+import { MoreIcon } from './icons';
 
 interface NavItemProps {
   icon: JSX.Element;
@@ -29,61 +29,47 @@ interface BottomNavigationBarProps {
   onMoreClick: (event: React.MouseEvent<HTMLElement>) => void;
   EventsIconComp: React.FC;
   CalendarIconComp: React.FC;
-  ArchiveIconComp: React.FC; 
+  ArchiveIconComp: React.FC;
   onNavigate: (path: string) => void;
   onSwitchMainView: (view: 'list' | 'calendar') => void;
 }
 
-const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ 
-    activeViewMode, 
-    currentPath, 
+const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
+    activeViewMode,
+    currentPath,
     onMoreClick,
     EventsIconComp,
     CalendarIconComp,
-    ArchiveIconComp, 
+    ArchiveIconComp,
     onNavigate,
     onSwitchMainView
 }) => {
-  const isMainActivePage = currentPath === '/' || currentPath.startsWith('/events/');
+  const isMainActivePage = currentPath === '/' || currentPath.startsWith('/events/') || currentPath === '/calendar';
   const isArchivePage = currentPath === '/archive';
 
   return (
     <nav className="bottom-navigation-bar">
-      <NavItem 
-        icon={<EventsIconComp />} 
-        text="Мероприятия" 
-        isActive={isMainActivePage && activeViewMode === 'list'} 
-        onClick={() => {
-            if (isMainActivePage) {
-                onSwitchMainView('list');
-            } else {
-                onNavigate('/'); 
-                onSwitchMainView('list');
-            }
-        }}
+      <NavItem
+        icon={<EventsIconComp />}
+        text="Мероприятия"
+        isActive={isMainActivePage && activeViewMode === 'list'}
+        onClick={() => onSwitchMainView('list')}
       />
-      <NavItem 
-        icon={<CalendarIconComp />} 
-        text="Расписание" 
-        isActive={isMainActivePage && activeViewMode === 'calendar'} 
-        onClick={() => {
-            if (isMainActivePage) {
-                onSwitchMainView('calendar');
-            } else {
-                onNavigate('/'); 
-                onSwitchMainView('calendar');
-            }
-        }}
+      <NavItem
+        icon={<CalendarIconComp />}
+        text="Расписание"
+        isActive={isMainActivePage && activeViewMode === 'calendar'}
+        onClick={() => onSwitchMainView('calendar')}
       />
-      <NavItem 
-        icon={<ArchiveIconComp />} 
-        text="Архив" 
-        isActive={isArchivePage} 
+      <NavItem
+        icon={<ArchiveIconComp />}
+        text="Архив"
+        isActive={isArchivePage}
         onClick={() => onNavigate('/archive')}
       />
-      <NavItem 
-        icon={<MoreIcon />} 
-        text="Еще" 
+      <NavItem
+        icon={<MoreIcon />}
+        text="Еще"
         onClick={onMoreClick}
       />
     </nav>

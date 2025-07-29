@@ -76,7 +76,6 @@ const CustomToolbar = (props: CustomToolbarProps) => {
                 <button type="button" className="rbc-nav-btn" onClick={() => onNavigate('NEXT')}>
                     {'>'}
                 </button>
-                {/* Кнопка экспорта календаря */}
                 <button type="button" className="secondary-btn small-btn rbc-export-btn" onClick={handleExport}>
                     Экспорт
                 </button>
